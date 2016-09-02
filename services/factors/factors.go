@@ -1,7 +1,7 @@
 package factors
 
 import (
-	sa "github.com/SecureAuthCorp/saidp-sdk-go"
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"net/http"
 	"bytes"
 	"encoding/json"

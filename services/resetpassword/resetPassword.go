@@ -3,7 +3,7 @@ package resetpassword
 import (
 	"net/http"
 	"encoding/json"
-	sa "github.com/SecureAuthCorp/saidp-sdk-go"
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"bytes"
 )
 

@@ -1,7 +1,7 @@
 package changepassword
 
 import (
-	sa "github.com/SecureAuthCorp/saidp-sdk-go"
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"testing"
 	"fmt"
 )

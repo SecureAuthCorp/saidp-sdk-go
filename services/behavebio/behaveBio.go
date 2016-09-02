@@ -1,7 +1,7 @@
 package behavebio
 
 import (
-	sa "github.com/SecureAuthCorp/saidp-sdk-go"
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"encoding/json"
 	"net/http"
 )

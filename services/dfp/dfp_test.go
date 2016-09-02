@@ -3,7 +3,7 @@ package dfp
 import (
 	"testing"
 	"fmt"
-	sa "github.com/SecureAuthCorp/saidp-sdk-go"
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
