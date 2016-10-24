@@ -39,8 +39,8 @@ const endpoint = "/api/v1/ipeval"
 //	Response struct that will be populated after the post request.
 
 type Response struct {
-	IpEvaluation	IpEvaluation	`json:"ip_evaluation,omitempty"`
-	HttpResponse	*http.Response  `json:"-,omitempty"`
+	IpEvaluation		IpEvaluation		`json:"ip_evaluation,omitempty"`
+	HttpResponse		*http.Response  	`json:"-,omitempty"`
 }
 
 // Summary:
@@ -51,47 +51,89 @@ type Response struct {
 //	[Required] IpAddress: the IP Address of the user to be evaluated.
 
 type Request struct {
-	UserId		string		`json:"user_id"`
-	EvalType	string		`json:"type"`
-	IpAddress	string		`json:"ip_address"`
+	UserId			string			`json:"user_id"`
+	EvalType		string			`json:"type"`
+	IpAddress		string			`json:"ip_address"`
 }
 
 // Summary:
 //	Struct providing data from the post request.
 
 type IpEvaluation struct {
-	Method		string		`json:"method,omitempty"`
-	Ip		string		`json:"ip,omitempty"`
-	RiskFactor	float32		`json:"risk_factor,omitempty"`
-	RiskColor	string		`json:"risk_color,omitempty"`
-	RiskDesc	string		`json:"risk_desc,omitempty"`
-	GeoLoc		GeoLoc		`json:"geoloc,omitempty"`
-	Factoring	Factoring	`json:"factoring,omitempty"`
-	Status		string		`json:"status,omitempty"`
-	Message		string		`json:"message,omitempty"`
+	Method			string			`json:"method,omitempty"`
+	Ip			string			`json:"ip,omitempty"`
+	RiskFactor		float32			`json:"risk_factor,omitempty"`
+	RiskColor		string			`json:"risk_color,omitempty"`
+	RiskDesc		string			`json:"risk_desc,omitempty"`
+	GeoLoc			GeoLoc			`json:"geoloc,omitempty"`
+	Factoring		Factoring		`json:"factoring,omitempty"`
+	FactoringDesc		FactorDescription	`json:"factor_description,omitempty"`
+	Status			string			`json:"status,omitempty"`
+	Message			string			`json:"message,omitempty"`
 }
 
 // Summary:
 //	Struct providing data from the post request.
 
 type GeoLoc struct {
-	Country		string		`json:"country,omitempty"`
-	CountryCode	string		`json:"country_code,omitempty"`
-	Region		string		`json:"region,omitempty"`
-	RegionCode	string		`json:"region_code,omitempty"`
-	City		string		`json:"city,omitempty"`
-	Latitude	string		`json:"latitude,omitempty"`
-	Longtitude	string		`json:"longtitude,omitempty"`
-	Isp		string		`json:"internet_service_provider,omitempty"`
-	Organization	string		`json:"organization,omitempty"`
+	Country			string			`json:"country,omitempty"`
+	CountryCode		string			`json:"country_code,omitempty"`
+	Region			string			`json:"region,omitempty"`
+	RegionCode		string			`json:"region_code,omitempty"`
+	City			string			`json:"city,omitempty"`
+	Latitude		string			`json:"latitude,omitempty"`
+	Longtitude		string			`json:"longtitude,omitempty"`
+	Isp			string			`json:"internet_service_provider,omitempty"`
+	Organization		string			`json:"organization,omitempty"`
 }
 
 // Summary:
 //	Struct providing data from the post request.
 
 type Factoring struct {
-	ThreatType	float32		`json:"threatType,omitempty"`
-	ThreatCategory	float32		`json:"threatCategory,omitempty"`
+	Latitude		float32			`json:"latitude,omitempty"`
+	Longitude		float32			`json:"longitude,omitempty"`
+	ThreatType		float32			`json:"threatType,omitempty"`
+	ThreatCategory		float32			`json:"threatCategory,omitempty"`
+}
+
+
+// Summary:
+//	Struct providing data from the post request.
+
+type FactorDescription struct {
+	GeoContinent 		string 			`json:"geoContinent,omitempty"`
+	GeoCountry 		string 			`json:"geoCountry,omitempty"`
+	GeoCountryCode 		string 			`json:"geoCountryCode,omitempty"`
+	GeoCountryCF 		string 			`json:"geoCountryCF,omitempty"`
+	GeoRegion 		string 			`json:"geoRegion,omitempty"`
+	GeoState 		string 			`json:"geoState,omitempty"`
+	GeoStateCode 		string 			`json:"geoStateCode,omitempty"`
+	GeoStateCF 		string 			`json:"geoStateCF,omitempty"`
+	GeoCity 		string 			`json:"geoCity,omitempty"`
+	GeoCityCF 		string 			`json:"geoCityCF,omitempty"`
+	GeoPostalCode 		string 			`json:"geoPostalCode,omitempty"`
+	GeoAreaCode 		string 			`json:"geoAreaCode,omitempty"`
+	GeoTimeZone 		string 			`json:"geoTimeZone,omitempty"`
+	GeoLatitude 		string 			`json:"geoLatitude,omitempty"`
+	GeoLongitude 		string 			`json:"geoLongitude,omitempty"`
+	Dma 			string 			`json:"dma,omitempty"`
+	Msa 			string 			`json:"msa,omitempty"`
+	ConnectionType 		string 			`json:"connectionType,omitempty"`
+	LineSpeed 		string 			`json:"lineSpeed,omitempty"`
+	IPRoutingType 		string 			`json:"ipRoutingType,omitempty"`
+	GeoAsn 			string 			`json:"geoAsn,omitempty"`
+	Sld 			string 			`json:"sld,omitempty"`
+	Tld 			string 			`json:"tld,omitempty"`
+	Organization 		string 			`json:"organization,omitempty"`
+	Carrier 		string 			`json:"carrier,omitempty"`
+	AnonymizerStatus 	string 			`json:"anonymizer_status,omitempty"`
+	ProxyLevel 		string 			`json:"proxyLevel,omitempty"`
+	ProxyType 		string 			`json:"proxyType,omitempty"`
+	ProxyLastDetected 	string 			`json:"proxyLastDetected,omitempty"`
+	HostingFacility 	string 			`json:"hostingFacility,omitempty"`
+	ThreatType 		string 			`json:"threatType,omitempty"`
+	ThreatCategory 		string 			`json:"threatCategory,omitempty"`
 }
 
 // Summary:

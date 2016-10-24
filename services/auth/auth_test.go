@@ -46,95 +46,95 @@ const (
 	pushDevice = ""
 )
 
-func TestAuthRequet (t *testing.T) {
+func TestAuthRequest (t *testing.T) {
 	client, err := sa.NewClient(appId, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
 	authRequest := new(Request)
-	valUserResp, err := authRequest.ValidateUser(client, user)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Validate User:")
-	fmt.Println(valUserResp)
-	valPassResp, err := authRequest.ValidatePassword(client, user, pass)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Validate Password:")
-	fmt.Println(valPassResp)
-	valKbaResp, err := authRequest.ValidateKba(client, user, kba, "KBQ1")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Validate KBA:")
-	fmt.Println(valKbaResp)
-	valOathResp, err := authRequest.ValidateOath(client, user, "123456", oathDevice)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Validate Oath:")
-	fmt.Println(valOathResp)
-	valPinResp, err := authRequest.ValidatePin(client, user, "1234")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Validate PIN:")
-	fmt.Println(valPinResp)
-	sendCallResp, err := authRequest.SendCallOtp(client, user, "Phone2")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Send Call OTP:")
-	fmt.Println(sendCallResp)
-	sendSMSResp, err := authRequest.SendSMSOtp(client, user, "Phone2")
+	//valUserResp, err := authRequest.ValidateUser(client, user)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Validate User:")
+	//fmt.Println(valUserResp)
+	//valPassResp, err := authRequest.ValidatePassword(client, user, pass)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Validate Password:")
+	//fmt.Println(valPassResp)
+	//valKbaResp, err := authRequest.ValidateKba(client, user, kba, "KBQ1")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Validate KBA:")
+	//fmt.Println(valKbaResp)
+	//valOathResp, err := authRequest.ValidateOath(client, user, "123456", oathDevice)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Validate Oath:")
+	//fmt.Println(valOathResp)
+	//valPinResp, err := authRequest.ValidatePin(client, user, "1234")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Validate PIN:")
+	//fmt.Println(valPinResp)
+	//sendCallResp, err := authRequest.SendCallOtp(client, user, "Phone2")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Send Call OTP:")
+	//fmt.Println(sendCallResp)
+	sendSMSResp, err := authRequest.SendSMSOtp(client, user, "Phone1")
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
 	fmt.Println("Send SMS OTP:")
 	fmt.Println(sendSMSResp)
-	sendEmailResp, err := authRequest.SendEmailOtp(client, user, "Email1")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Send Email OTP:")
-	fmt.Println(sendEmailResp)
-	sendPushNotifyResp, err := authRequest.SendPushNotify(client, user, pushDevice)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Send Push OTP:")
-	fmt.Println(sendPushNotifyResp)
-	sendPushAcceptResp, err := authRequest.SendPushAccept(client, user, pushDevice, "Test Company", "Test App", "192.168.0.1")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Send Push to Accept:")
-	fmt.Println(sendPushAcceptResp)
-	pushStatusResp, err := authRequest.CheckPushAcceptStatus(client, sendPushAcceptResp.RefId, 60, 5)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Push to Accept Status:")
-	fmt.Println(pushStatusResp)
-	helpDeskResp, err := authRequest.SendHelpDesk(client, user, "HelpDesk1")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Send HelpDesk OTP:")
-	fmt.Println(helpDeskResp)
+	//sendEmailResp, err := authRequest.SendEmailOtp(client, user, "Email1")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Send Email OTP:")
+	//fmt.Println(sendEmailResp)
+	//sendPushNotifyResp, err := authRequest.SendPushNotify(client, user, pushDevice)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Send Push OTP:")
+	//fmt.Println(sendPushNotifyResp)
+	//sendPushAcceptResp, err := authRequest.SendPushAccept(client, user, pushDevice, "Test Company", "Test App", "192.168.0.1")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Send Push to Accept:")
+	//fmt.Println(sendPushAcceptResp)
+	//pushStatusResp, err := authRequest.CheckPushAcceptStatus(client, sendPushAcceptResp.RefId, 60, 5)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Push to Accept Status:")
+	//fmt.Println(pushStatusResp)
+	//helpDeskResp, err := authRequest.SendHelpDesk(client, user, "HelpDesk1")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	t.FailNow()
+	//}
+	//fmt.Println("Send HelpDesk OTP:")
+	//fmt.Println(helpDeskResp)
 }
