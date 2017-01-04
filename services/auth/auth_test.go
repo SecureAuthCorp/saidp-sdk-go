@@ -1,8 +1,9 @@
 package auth
 
 import (
-	"testing"
 	"fmt"
+	"testing"
+
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -10,7 +11,7 @@ import (
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -31,23 +32,24 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	appId = ""
-	appKey = ""
-	host = "host.company.com"
-	realm = "secureauth1"
-	port = 443
-	user = "user"
-	pass ="password"
-	kba = ""
-	oathDevice = ""
-	pushDevice = ""
+	appID       = ""
+	appKey      = ""
+	host        = "idp.host.com"
+	realm       = "secureauth1"
+	port        = 443
+	user        = "user"
+	pass        = "password"
+	kba         = ""
+	oathDevice  = ""
+	pushDevice  = ""
+	phoneNumber = "5558645309"
 )
 
-func TestAuthRequest (t *testing.T) {
-	client, err := sa.NewClient(appId, appKey, host, port, realm, true, false)
+func TestAuthRequest(t *testing.T) {
+	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -95,13 +97,13 @@ func TestAuthRequest (t *testing.T) {
 	//}
 	//fmt.Println("Send Call OTP:")
 	//fmt.Println(sendCallResp)
-	sendSMSResp, err := authRequest.SendSMSOtp(client, user, "Phone1")
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Send SMS OTP:")
-	fmt.Println(sendSMSResp)
+	// sendSMSResp, err := authRequest.SendSMSOtp(client, user, "Phone1")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	t.FailNow()
+	// }
+	// fmt.Println("Send SMS OTP:")
+	// fmt.Println(sendSMSResp)
 	//sendEmailResp, err := authRequest.SendEmailOtp(client, user, "Email1")
 	//if err != nil {
 	//	fmt.Println(err)
@@ -137,4 +139,11 @@ func TestAuthRequest (t *testing.T) {
 	//}
 	//fmt.Println("Send HelpDesk OTP:")
 	//fmt.Println(helpDeskResp)
+	adhocResp, err := authRequest.SendOtpAdHoc(client, user, phoneNumber, "sms", false)
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
+	fmt.Println("Send AdHock SMS OTP")
+	fmt.Println(adhocResp)
 }

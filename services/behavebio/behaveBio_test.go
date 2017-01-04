@@ -1,8 +1,9 @@
 package behavebio
 
 import (
-	"testing"
 	"fmt"
+	"testing"
+
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -10,7 +11,7 @@ import (
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -31,21 +32,21 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	appId = ""
-	appKey = ""
-	host = "host.company.com"
-	realm = "secureauth1"
-	port = 443
+	appID         = ""
+	appKey        = ""
+	host          = "host.company.com"
+	realm         = "secureauth1"
+	port          = 443
 	behaveProfile = ``
-	userAgent = ``
-	user = "user"
+	userAgent     = ``
+	user          = "user"
 )
 
-func TestBehaveBioRequest (t *testing.T) {
-	client, err := sa.NewClient(appId, appKey, host, port, realm, true, false)
+func TestBehaveBioRequest(t *testing.T) {
+	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -1,26 +1,27 @@
 package saidp_sdk_go
 
 import (
-	"net/http"
-	"errors"
-	"fmt"
 	"bytes"
-	"encoding/hex"
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
+	"encoding/hex"
+	"errors"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
-	"net/url"
-	"crypto/tls"
+
+	validators "github.com/secureauthcorp/saidp-sdk-go/utilities/validators"
 )
 
 /*
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -41,31 +42,29 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 var (
-	list = []string{ http.MethodGet, http.MethodPost, http.MethodPut }
-	hdrContentTypeKey   	= http.CanonicalHeaderKey("Content-Type")
-	hdrAcceptKey        	= http.CanonicalHeaderKey("Accept")
-	hdrDateKey	    	= http.CanonicalHeaderKey("Date")
-	hdrAuthorizationKey 	= http.CanonicalHeaderKey("Authorization")
-	jsonContentType		= "application/json; charset=utf-8"
+	list                = []string{http.MethodGet, http.MethodPost, http.MethodPut}
+	hdrContentTypeKey   = http.CanonicalHeaderKey("Content-Type")
+	hdrAcceptKey        = http.CanonicalHeaderKey("Accept")
+	hdrDateKey          = http.CanonicalHeaderKey("Date")
+	hdrAuthorizationKey = http.CanonicalHeaderKey("Authorization")
+	jsonContentType     = "application/json; charset=utf-8"
 )
 
-// Summary:
-//	Client struct to hold configuration information for connecting to the SecureAuth APIs.
-
+//Client : struct to hold configuration information for connecting to the SecureAuth APIs.
 type Client struct {
-	AppId			string
-	AppKey			string
-	Host			string
-	Port			int
-	Realm			string
-	SSL			bool
-	BypassCertValidation	bool
+	AppID                string
+	AppKey               string
+	Host                 string
+	Port                 int
+	Realm                string
+	SSL                  bool
+	BypassCertValidation bool
 }
 
-// Summary:
+// BuildGetRequest :
 //	Function supporting the building of get requests for each service package. Will handle signing and creation of the auth header as well as timestamp and other headers needed.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -73,9 +72,8 @@ type Client struct {
 // Returns:
 //	http.Request: Http Request struct that can be used via Http Client to make the request.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (c Client) BuildGetRequest(endpoint string)(*http.Request, error) {
-	url, err := buildEndpointUrl(c.SSL, c.Host, c.Port, c.Realm, endpoint)
+func (c Client) BuildGetRequest(endpoint string) (*http.Request, error) {
+	url, err := buildEndpointURL(c.SSL, c.Host, c.Port, c.Realm, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +92,7 @@ func (c Client) BuildGetRequest(endpoint string)(*http.Request, error) {
 	return req, nil
 }
 
-// Summary:
+// BuildPostRequest :
 //	Function supporting the building of post requests for each service package. Will handle signing and creation of the auth header as well as timestamp and other headers needed.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -103,9 +101,8 @@ func (c Client) BuildGetRequest(endpoint string)(*http.Request, error) {
 // Returns:
 //	http.Request: Http Request struct that can be used via Http Client to make the request.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (c Client) BuildPostRequest(endpoint string, content string)(*http.Request, error) {
-	url, err := buildEndpointUrl(c.SSL, c.Host, c.Port, c.Realm, endpoint)
+func (c Client) BuildPostRequest(endpoint string, content string) (*http.Request, error) {
+	url, err := buildEndpointURL(c.SSL, c.Host, c.Port, c.Realm, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +122,7 @@ func (c Client) BuildPostRequest(endpoint string, content string)(*http.Request,
 	return req, nil
 }
 
-// Summary:
+// BuildPutRequest :
 //	Function supporting the building of put requests for each service package. Will handle signing and creation of the auth header as well as timestamp and other headers needed.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -134,9 +131,8 @@ func (c Client) BuildPostRequest(endpoint string, content string)(*http.Request,
 // Returns:
 //	http.Request: Http Request struct that can be used via Http Client to make the request.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (c Client) BuildPutRequest(endpoint string, content string)(*http.Request, error) {
-	url, err := buildEndpointUrl(c.SSL, c.Host, c.Port, c.Realm, endpoint)
+func (c Client) BuildPutRequest(endpoint string, content string) (*http.Request, error) {
+	url, err := buildEndpointURL(c.SSL, c.Host, c.Port, c.Realm, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +152,35 @@ func (c Client) BuildPutRequest(endpoint string, content string)(*http.Request, 
 	return req, nil
 }
 
-// Summary:
+// BuildEmptyPutRequest :
+//	Function to supporting the building of put requests without content for each service package. Will handle signing and creation of the auth header as well as timestamp and other headers needed.
+// Parameters:
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] endpoint: the api endpoint (after the SecureAuth# realm) that the get will be performed against.
+// Returns:
+//	http.Request: Http Request struct that can be used via Http Client to make the request.
+//	Error: If an error is encountered, response will be nil and the error must be handled.
+func (c Client) BuildEmptyPutRequest(endpoint string) (*http.Request, error) {
+	url, err := buildEndpointURL(c.SSL, c.Host, c.Port, c.Realm, endpoint)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPut, url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	sig, err := c.Sign(http.MethodPut, endpoint, "")
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set(hdrAcceptKey, jsonContentType)
+	req.Header.Set(hdrContentTypeKey, jsonContentType)
+	req.Header.Set(hdrDateKey, getGMTTimestamp())
+	req.Header.Set(hdrAuthorizationKey, sig)
+	return req, nil
+}
+
+// Do :
 //	Function to execute a Http Request.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -164,8 +188,7 @@ func (c Client) BuildPutRequest(endpoint string, content string)(*http.Request, 
 // Returns:
 //	http.Response: Http Response struct that can be used to get the body for the api response.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (c Client) Do(req *http.Request)(*http.Response, error) {
+func (c Client) Do(req *http.Request) (*http.Response, error) {
 	httpClient := new(http.Client)
 	transport := new(http.Transport)
 	if c.BypassCertValidation {
@@ -179,7 +202,7 @@ func (c Client) Do(req *http.Request)(*http.Response, error) {
 	return resp, nil
 }
 
-// Summary:
+// Sign :
 //	Function to create the Authorization headed needed to perform API calls to SecureAuth.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -189,24 +212,23 @@ func (c Client) Do(req *http.Request)(*http.Response, error) {
 // Returns:
 //	string: Authorization header string.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (c Client) Sign(method string, endpoint string, content string)(string, error) {
-	if !validateMethod(method) {
+func (c Client) Sign(method string, endpoint string, content string) (string, error) {
+	if !validators.ValidateHTTPMethod(method) {
 		return "", errors.New("Method invalid. Try using: POST, GET, or PUT")
 	}
 	if len(endpoint) <= 0 {
-		return "", errors.New("A API endpoint is required.")
+		return "", errors.New("A API endpoint is required")
 	}
-	if strings.Contains(method, "PUT") || strings.Contains(method, "POST") {
+	if strings.Contains(method, "POST") {
 		if len(content) <= 0 {
-			return "", errors.New("PUT and POST methods require content.")
+			return "", errors.New("PUT and POST methods require content")
 		}
 	}
 	var buffer bytes.Buffer
 	timestamp := getGMTTimestamp()
-	payload := buildAuthPayload(method, timestamp, c.AppId, c.Realm, endpoint, content)
+	payload := buildAuthPayload(method, timestamp, c.AppID, c.Realm, endpoint, content)
 	encryptStr := makeHmac(payload, c.AppKey)
-	buffer.WriteString(c.AppId)
+	buffer.WriteString(c.AppID)
 	buffer.WriteString(":")
 	buffer.WriteString(string(encryptStr))
 	authStr := base64.StdEncoding.EncodeToString(buffer.Bytes())
@@ -216,7 +238,7 @@ func (c Client) Sign(method string, endpoint string, content string)(string, err
 	return buffer.String(), nil
 }
 
-// Summary:
+// NewClient :
 //	Helper function to create a Client struct.
 // Parameters:
 //	[Required] appId: SecureAuth API AppId.
@@ -229,16 +251,14 @@ func (c Client) Sign(method string, endpoint string, content string)(string, err
 // Returns:
 //	Client: a pointer to a client struct with the supplied values.
 //	Error: If an error is encountered, response will be nil and the error must be handled
-
-func NewClient(appId string, appKey string, host string, port int, realm string, ssl bool, bypassCert bool) (*Client, error) {
-	params := []string{appId,appKey,host,realm}
-	for _, v := range params {
-		if isNil(v) {
-			return nil, errors.New(fmt.Sprintf("%v is required to create a new client.", v))
-		}
+func NewClient(appID string, appKey string, host string, port int, realm string, ssl bool, bypassCert bool) (*Client, error) {
+	params := map[string]string{"AppID": appID, "AppKey": appKey, "Host": host, "Realm": realm}
+	valid, err := validators.ValidateClientParams(params)
+	if (!valid) && (err != nil) {
+		return nil, errors.New(err.Error())
 	}
 	c := new(Client)
-	c.AppId = appId
+	c.AppID = appID
 	c.AppKey = appKey
 	c.Host = host
 	if port == 0 {
@@ -253,32 +273,19 @@ func NewClient(appId string, appKey string, host string, port int, realm string,
 	return c, nil
 }
 
-// Summary:
-//	non-exportable helper to nil check a string.
-
-func isNil(s string) (bool) {
-	if len(s) <= 0 {
-		return true
-	} else {
-		return false
-	}
-}
-
-// Summary:
+// getGMTTimestamp :
 //	non-exportable helper to build the GMT timestamp used in authorization and http headers.
-
 func getGMTTimestamp() string {
 	location, _ := time.LoadLocation("Etc/GMT")
 	return time.Now().In(location).Format(time.RFC1123)
 }
 
-// Summary:
+// buildAuthPayload :
 //	non-exportable helper to build the auth payload for building the authorization header.
-
-func buildAuthPayload (method string, timestamp string, appid string, realm string, endpoint string, content string) string {
+func buildAuthPayload(method string, timestamp string, appid string, realm string, endpoint string, content string) string {
 	var buffer bytes.Buffer
 	switch method {
-	case "GET" :
+	case "GET":
 		buffer.WriteString(method)
 		buffer.WriteString("\n")
 		buffer.WriteString(timestamp)
@@ -288,7 +295,7 @@ func buildAuthPayload (method string, timestamp string, appid string, realm stri
 		buffer.WriteString("/")
 		buffer.WriteString(realm)
 		buffer.WriteString(endpoint)
-	case "POST", "PUT" :
+	case "POST", "PUT":
 		buffer.WriteString(method)
 		buffer.WriteString("\n")
 		buffer.WriteString(timestamp)
@@ -304,10 +311,9 @@ func buildAuthPayload (method string, timestamp string, appid string, realm stri
 	return buffer.String()
 }
 
-// Summary:
+// buildEndpointURL :
 //	non-exportable helper to build the full url to the api endpoint.
-
-func buildEndpointUrl (ssl bool,host string, port int, realm string, endpoint string) (*url.URL, error) {
+func buildEndpointURL(ssl bool, host string, port int, realm string, endpoint string) (*url.URL, error) {
 	var buffer bytes.Buffer
 	if ssl {
 		buffer.WriteString("https://")
@@ -323,25 +329,12 @@ func buildEndpointUrl (ssl bool,host string, port int, realm string, endpoint st
 	return url.Parse(buffer.String())
 }
 
-// Summary:
+// makeHmac:
 //	non-exportable helper to do SHA256 HMAC
-
-func makeHmac (data string, key string) (string) {
-	byteKey,_ := hex.DecodeString(key)
+func makeHmac(data string, key string) string {
+	byteKey, _ := hex.DecodeString(key)
 	byteData := []byte(data)
 	sig := hmac.New(sha256.New, byteKey)
 	sig.Write([]byte(byteData))
 	return base64.StdEncoding.EncodeToString(sig.Sum(nil))
-}
-
-// Summary:
-//	non-exportable helper to validate expected http method verbs.
-
-func validateMethod (str string) bool {
-	for _, v := range list {
-		if v == str {
-			return true
-		}
-	}
-	return false
 }

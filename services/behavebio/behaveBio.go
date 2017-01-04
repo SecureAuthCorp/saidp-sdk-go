@@ -1,16 +1,17 @@
 package behavebio
 
 import (
-	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"encoding/json"
 	"net/http"
+
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -31,66 +32,62 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	jsEndpoint = "/api/v1/behavebio/js"
+	jsEndpoint     = "/api/v1/behavebio/js"
 	behaveEndpoint = "/api/v1/behavebio"
 )
 
-// Summary:
+// Response :
 //	Response struct that will be populated after the post request.
-
 type Response struct {
-	Source			string			`json:"src,omitempty"`
-	BehaviorResults		BehaviorBioResults	`json:"BehaviorBioResults,omitempty"`
-	Status			string			`json:"status,omitempty"`
-	Message			string			`json:"message,omitempty"`
-	HttpResponse		*http.Response		`json:"-,omitempty"`
+	Source          string             `json:"src,omitempty"`
+	BehaviorResults BehaviorBioResults `json:"BehaviorBioResults,omitempty"`
+	Status          string             `json:"status,omitempty"`
+	Message         string             `json:"message,omitempty"`
+	HTTPResponse    *http.Response     `json:"-,omitempty"`
 }
 
-// Summary:
+// Request :
 //	Request struct to build required post parameters.
 // Fields:
-//	[Required] UserId: the username that you wish to submit a behaviobiometrics for.
+//	[Required] UserID: the username that you wish to submit a behaviobiometrics for.
 //	BehaviorProfile: json string from the behavioBio javascript source.
 //	HostAddress: the ip address of the user your are validating.
 //	UserAgent: the user agent the user is using in the request.
 //	FieldName: used for resetting the behavio profile.
 //	FieldType: used for resetting the behavio profile.
 //	DeviceType: used for the resetting the behavio profile.
-
 type Request struct {
-	UserId			string			`json:"userId,omitempty"`
-	BehaviorProfile		string			`json:"behaviorProfile,omitempty"`
-	HostAddress		string			`json:"hostAddress,omitempty"`
-	UserAgent		string			`json:"userAgent,omitempty"`
-	FieldName		string			`json:"fieldName,omitempty"`
-	FieldType		string			`json:"fieldType,omitempty"`
-	DeviceType		string			`json:"deviceType,omitempty"`
+	UserID          string `json:"userId,omitempty"`
+	BehaviorProfile string `json:"behaviorProfile,omitempty"`
+	HostAddress     string `json:"hostAddress,omitempty"`
+	UserAgent       string `json:"userAgent,omitempty"`
+	FieldName       string `json:"fieldName,omitempty"`
+	FieldType       string `json:"fieldType,omitempty"`
+	DeviceType      string `json:"deviceType,omitempty"`
 }
 
-// Summary:
+// BehaviorBioResults :
 //	Details for the behavior bio results
-
 type BehaviorBioResults struct {
-	TotalScore		float32			`json:"TotalScore,omitempty"`
-	TotalConfidence		float32			`json:"TotalConfidence,omitempty"`
-	Device			string			`json:"Device,omitempty"`
-	Results			[]Results		`json:"Results,omitempty"`
+	TotalScore      float32   `json:"TotalScore,omitempty"`
+	TotalConfidence float32   `json:"TotalConfidence,omitempty"`
+	Device          string    `json:"Device,omitempty"`
+	Results         []Results `json:"Results,omitempty"`
 }
 
-// Summary:
+// Results :
 //	Details for the behavior bio results
-
 type Results struct {
-	ControlId		string			`json:"ControlID,omitempty"`
-	Score			float32			`json:"Score,omitempty"`
-	Confidence		float32			`json:"Confidence,omitempty"`
-	Count			int32			`json:"Count,omitempty"`
+	ControlID  string  `json:"ControlID,omitempty"`
+	Score      float32 `json:"Score,omitempty"`
+	Confidence float32 `json:"Confidence,omitempty"`
+	Count      int32   `json:"Count,omitempty"`
 }
 
-// Summary:
+// Get :
 //	Executes a get to the behaviobio javascript endpoint.
 // Parameters:
 //	[Required] r: request struct to make get easy. should be empty for the use in get operations
@@ -99,8 +96,7 @@ type Results struct {
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) Get(c *sa.Client, endpoint string)(*Response, error){
+func (r *Request) Get(c *sa.Client, endpoint string) (*Response, error) {
 	httpRequest, err := c.BuildGetRequest(endpoint)
 	if err != nil {
 		return nil, err
@@ -113,12 +109,12 @@ func (r *Request) Get(c *sa.Client, endpoint string)(*Response, error){
 	if err := json.NewDecoder(httpResponse.Body).Decode(behaveResponse); err != nil {
 		return nil, err
 	}
-	behaveResponse.HttpResponse = httpResponse
+	behaveResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return behaveResponse, nil
 }
 
-// Summary:
+// Post :
 //	Executes a post to the behavioBio endpoint.
 // Parameters:
 //	[Required] r: should have all the required fields for the post type.
@@ -127,8 +123,7 @@ func (r *Request) Get(c *sa.Client, endpoint string)(*Response, error){
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) Post(c *sa.Client, endpoint string)(*Response, error){
+func (r *Request) Post(c *sa.Client, endpoint string) (*Response, error) {
 	jsonRequest, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -145,12 +140,12 @@ func (r *Request) Post(c *sa.Client, endpoint string)(*Response, error){
 	if err := json.NewDecoder(httpResponse.Body).Decode(behaveResponse); err != nil {
 		return nil, err
 	}
-	behaveResponse.HttpResponse = httpResponse
+	behaveResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return behaveResponse, nil
 }
 
-// Summary:
+// Put :
 //	Executes a put to the behavioBio endpoint.
 // Parameters:
 //	[Required] r: should have all the required fields for the put type.
@@ -159,8 +154,7 @@ func (r *Request) Post(c *sa.Client, endpoint string)(*Response, error){
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) Put(c *sa.Client, endpoint string)(*Response, error){
+func (r *Request) Put(c *sa.Client, endpoint string) (*Response, error) {
 	jsonRequest, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -177,20 +171,19 @@ func (r *Request) Put(c *sa.Client, endpoint string)(*Response, error){
 	if err := json.NewDecoder(httpResponse.Body).Decode(behaveResponse); err != nil {
 		return nil, err
 	}
-	behaveResponse.HttpResponse = httpResponse
+	behaveResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return behaveResponse, nil
 }
 
-// Summary:
+// GetBehaveJs :
 //	Helper function for Get request to retrieve the behaviorbiometrics javascript source.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) GetBehaveJs(c *sa.Client)(*Response, error){
+func (r *Request) GetBehaveJs(c *sa.Client) (*Response, error) {
 	behaveResponse, err := r.Get(c, jsEndpoint)
 	if err != nil {
 		return nil, err
@@ -198,20 +191,19 @@ func (r *Request) GetBehaveJs(c *sa.Client)(*Response, error){
 	return behaveResponse, nil
 }
 
-// Summary:
+// PostBehaveProfile :
 //	Helper function for posting to the behaviobio endpoint.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
-//	[Required] userId: the username of the user you wish to post behaviobio to.
+//	[Required] userID: the username of the user you wish to post behaviobio to.
 //	[Required] behaveProfile: from the behavioBio javascript, a json string.
 //	[Required] hostAddress: the ip address of the user's host.
 //	[Required] userAgent: the user's userAgent string from their request.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) PostBehaveProfile(c *sa.Client, userId string, behaveProfile string, hostAddress string, userAgent string)(*Response, error){
-	r.UserId = userId
+func (r *Request) PostBehaveProfile(c *sa.Client, userID string, behaveProfile string, hostAddress string, userAgent string) (*Response, error) {
+	r.UserID = userID
 	r.BehaviorProfile = behaveProfile
 	r.HostAddress = hostAddress
 	r.UserAgent = userAgent
@@ -222,11 +214,11 @@ func (r *Request) PostBehaveProfile(c *sa.Client, userId string, behaveProfile s
 	return behaveResponse, nil
 }
 
-// Summary:
+// ResetBehaveProfile :
 //	Helper function for putting to the behaviobio endpoint.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
-//	[Required] userId: the username of the user you wish to put behaviobio to.
+//	[Required] userID: the username of the user you wish to put behaviobio to.
 //	[Required] fieldName: name of field to reset (unique to application); or set to ALL for global reset.
 //	[Required] fieldType: Type of field, either regulartext (actual values stored in profile) or anonymoustext (no actual values stored
 //                 in profile, e.g. password entries); or set to ALL for global reset.
@@ -234,9 +226,8 @@ func (r *Request) PostBehaveProfile(c *sa.Client, userId string, behaveProfile s
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) ResetBehaveProfile(c *sa.Client, userId string, fieldName string, fieldType string, deviceType string)(*Response, error){
-	r.UserId = userId
+func (r *Request) ResetBehaveProfile(c *sa.Client, userID string, fieldName string, fieldType string, deviceType string) (*Response, error) {
+	r.UserID = userID
 	r.FieldName = fieldName
 	r.FieldType = fieldType
 	r.DeviceType = deviceType

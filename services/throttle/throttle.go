@@ -1,4 +1,4 @@
-package factors
+package throttle
 
 import (
 	"bytes"
@@ -35,37 +35,30 @@ import (
 **********************************************************************
  */
 
-const endpoint = "/api/v1/users/"
+const (
+	usersEndpoint = "/api/v1/users/"
+)
+
+// Request :
+//	Empty Request struct for easy function access.
+type Request struct {
+}
 
 // Response :
-// 	Response struct that will be populated after the post request.
+//	Response struct that will be populated after the request.
 type Response struct {
-	UserID       string         `json:"user_id"`
-	Status       string         `json:"status"`
-	Message      string         `json:"message"`
-	Factors      Factors        `json:"factors,omitempty"`
+	Status       string         `json:"status,omitempty"`
+	Message      string         `json:"message,omitempty"`
+	Count        int            `json:"count,omitempty"`
 	HTTPResponse *http.Response `json:"-,omitempty"`
 }
 
-// Factors :
-//	Struct of factor data returned by the users endpoint.
-type Factors []struct {
-	FactorType   string   `json:"type"`
-	ID           string   `json:"id,omitempty"`
-	Value        string   `json:"value"`
-	Capabilities []string `json:"capabilities,omitempty"`
-}
-
-// Request :
-//	Empty Request struct to allow easy use for Get func.
-type Request struct{}
-
 // Get :
-//	Executes a get to the users endpoint.
+//	Executes a post to the users throttle/ endpoint.
 // Parameters:
-//	[Required] r: empty struct used to make Get easy.
-//	[Required] c: passing in the client containing authorization and host information.
-//	[Required] user: the user you want to get factor information for.
+// 	[Required] r: should have all required fields of the struct populated before using.
+// 	[Required] c: passing in the client containing authorization and host information.
+//	[Required] user: the user id of the user you wish to get the throttle status for.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
@@ -79,21 +72,49 @@ func (r *Request) Get(c *sa.Client, user string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	factorResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(factorResponse); err != nil {
+	throttleResponse := new(Response)
+	if err := json.NewDecoder(httpResponse.Body).Decode(throttleResponse); err != nil {
 		return nil, err
 	}
-	factorResponse.HTTPResponse = httpResponse
+	throttleResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
-	return factorResponse, nil
+	return throttleResponse, nil
 }
 
-// buildEndpointPath:
+// Put :
+//	Executes a put request to the users throttle/ endpoint.
+// Parameters:
+// 	[Required] r: should have all required fields of the struct populated before using.
+// 	[Required] c: passing in the client containing authorization and host information.
+//	[Required] user: the user id of the user you wish to reset the throttle status for.
+// Returns:
+//	Response: Struct marshaled from the Json response from the API endpoints.
+//	Error: If an error is encountered, response will be nil and the error must be handled.
+func (r *Request) Put(c *sa.Client, user string) (*Response, error) {
+	endpoint := buildEndpointPath(user)
+	httpRequest, err := c.BuildEmptyPutRequest(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	httpResponse, err := c.Do(httpRequest)
+	if err != nil {
+		return nil, err
+	}
+	throttleResponse := new(Response)
+	if err := json.NewDecoder(httpResponse.Body).Decode(throttleResponse); err != nil {
+		return nil, err
+	}
+	throttleResponse.HTTPResponse = httpResponse
+	httpResponse.Body.Close()
+	return throttleResponse, nil
+}
+
+// buildEndpointPath :
 //	non-exportable helper to build the endpoint api path with username injected.
 func buildEndpointPath(user string) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(endpoint)
+	buffer.WriteString(usersEndpoint)
 	buffer.WriteString(user)
-	buffer.WriteString("/factors")
+	buffer.WriteString("/throttle")
 	return buffer.String()
 }
