@@ -195,7 +195,7 @@ func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, f
 	return validateResponse, nil
 }
 
-// Summary:
+// ConfirmDfp :
 //	Helper function for posting to the dfp validate endpoint.
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -204,9 +204,9 @@ func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, f
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) ConfirmDfp(c *sa.Client, userID string, fingerprintId string) (*Response, error) {
+func (r *Request) ConfirmDfp(c *sa.Client, userID string, fingerprintID string) (*Response, error) {
 	r.UserID = userID
-	r.FingerprintID = fingerprintId
+	r.FingerprintID = fingerprintID
 	confirmResponse, err := r.Post(c, confirmEndpoint)
 	if err != nil {
 		return nil, err
