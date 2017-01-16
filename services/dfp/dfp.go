@@ -204,7 +204,6 @@ func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, f
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
 func (r *Request) ConfirmDfp(c *sa.Client, userID string, fingerprintId string) (*Response, error) {
 	r.UserID = userID
 	r.FingerprintID = fingerprintId
