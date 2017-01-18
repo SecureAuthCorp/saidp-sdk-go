@@ -1,4 +1,4 @@
-package adaptauth
+package numberprofile
 
 import (
 	"fmt"
@@ -35,26 +35,29 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "host.company.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
-	userIP = "192.168.0.1"
+	appID       = ""
+	appKey      = ""
+	host        = "idp.host.com"
+	realm       = "secureauth1"
+	port        = 443
+	user        = "user"
+	phoneNumber = "15558675309"
 )
 
-func TestAdaptAuthRequest(t *testing.T) {
+func TestProfileNumber(t *testing.T) {
 	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
+		t.FailNow()
 	}
-	adaptRequest := new(Request)
-
-	adaptResponse, err := adaptRequest.EvaluateAdaptiveAuth(client, user, userIP)
+	numberProfile := new(Request)
+	numberProfile.UserID = user
+	numberProfile.PhoneNumber = phoneNumber
+	numberResponse, err := numberProfile.Post(client)
 	if err != nil {
 		fmt.Println(err)
+		t.FailNow()
 	}
-	fmt.Println("Response Struct from SecureAuth IdP API: ")
-	fmt.Printf("%#v\n", adaptResponse)
+	fmt.Println("Number Profile Response (POST): ")
+	fmt.Println(numberResponse)
 }

@@ -1,17 +1,17 @@
 package groups
 
-
 import (
-	sa "github.com/secureauthcorp/saidp-sdk-go"
-	"testing"
 	"fmt"
+	"testing"
+
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -32,27 +32,27 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	appId = ""
-	appKey = ""
-	host = "host.company.com"
-	realm = "secureauth1"
-	port = 443
-	user1 = "user1"
-	user2 = "user2"
-	user3 = "user3"
-	user4 = "user4"
-	group1 = "group1"
-	group2 = "group2"
-	group3 = "group3"
-	group4 = "group4"
+	appID       = ""
+	appKey      = ""
+	host        = "host.company.com"
+	realm       = "secureauth1"
+	port        = 443
+	user1       = "user1"
+	user2       = "user2"
+	user3       = "user3"
+	user4       = "user4"
+	group1      = "group1"
+	group2      = "group2"
+	group3      = "group3"
+	group4      = "group4"
 	spacedGroup = "group 5"
 )
 
 func TestGroupRequest(t *testing.T) {
-	client, err := sa.NewClient(appId, appKey, host, port, realm, true, false)
+	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -69,7 +69,7 @@ func TestGroupRequest(t *testing.T) {
 
 	// Test Single User to Multiple Groups
 	sumgRequest := new(Request)
-	sumgGroups := []string{group2,group3,group4}
+	sumgGroups := []string{group2, group3, group4}
 	sumgResponse, err := sumgRequest.AddUserToGroups(client, user1, sumgGroups)
 	if err != nil {
 		fmt.Println(err)
@@ -90,7 +90,7 @@ func TestGroupRequest(t *testing.T) {
 
 	// Test Single Group to Multiple Users.
 	sgmuRequest := new(Request)
-	sgmuUsers := []string{user2,user3,user4}
+	sgmuUsers := []string{user2, user3, user4}
 	sgmuResponse, err := sgmuRequest.AddGroupToUsers(client, group2, sgmuUsers)
 	if err != nil {
 		fmt.Println(err)

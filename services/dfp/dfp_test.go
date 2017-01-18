@@ -1,8 +1,9 @@
 package dfp
 
 import (
-	"testing"
 	"fmt"
+	"testing"
+
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -10,7 +11,7 @@ import (
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -31,25 +32,25 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	appId = ""
-	appKey = ""
-	host = "host.company.com"
-	realm = "secureauth1"
-	port = 443
-	user = "user"
-	host_addr = "192.168.0.1"
-	fingerprintJson = ``
-	accept = "";
-	accept_encode = ""
-	accept_lang = ""
-	accept_charset = ""
+	appID           = ""
+	appKey          = ""
+	host            = "host.company.com"
+	realm           = "secureauth1"
+	port            = 443
+	user            = "user"
+	hostAddr        = "192.168.0.1"
+	fingerprintJSON = ``
+	accept          = ""
+	acceptEncode    = ""
+	acceptLang      = ""
+	acceptCharset   = ""
 )
 
-func TestDFPRequest (t *testing.T){
-	client, err := sa.NewClient(appId, appKey, host, port, realm, true, false)
+func TestDFPRequest(t *testing.T) {
+	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -60,13 +61,13 @@ func TestDFPRequest (t *testing.T){
 	}
 	fmt.Println("Response Struct for JavaScript Source:")
 	fmt.Println(jsResponse)
-	dfpValResponse, err := dfpRequest.ValidateDfp(client, user, host_addr, "", fingerprintJson, accept, accept_charset, accept_encode, accept_lang)
+	dfpValResponse, err := dfpRequest.ValidateDfp(client, user, hostAddr, "", fingerprintJSON, accept, acceptCharset, acceptEncode, acceptLang)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println("Response Struct for DFP Validate:")
 	fmt.Println(dfpValResponse)
-	dfpConResponse, err := dfpRequest.ConfirmDfp(client, user, dfpValResponse.FingerprintId)
+	dfpConResponse, err := dfpRequest.ConfirmDfp(client, user, dfpValResponse.FingerprintID)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -1,17 +1,18 @@
 package profile
 
 import (
-	"testing"
-	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"fmt"
 	"strings"
+	"testing"
+
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -32,19 +33,19 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	appId = ""
+	appID  = ""
 	appKey = ""
-	host = "host.company.com"
-	realm = "secureauth1"
-	port = 443
-	user = "user"
+	host   = "host.company.com"
+	realm  = "secureauth1"
+	port   = 443
+	user   = "user"
 )
 
-func TestProfileRequest(t *testing.T ){
-	client, err := sa.NewClient(appId, appKey, host, port, realm, true, false)
+func TestProfileRequest(t *testing.T) {
+	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -59,14 +60,14 @@ func TestProfileRequest(t *testing.T ){
 	fmt.Println(profileResponse)
 	if strings.Contains(profileResponse.Status, "not_found") {
 		postRequest := new(Request)
-		postRequest.UserId = user
+		postRequest.UserID = user
 		postRequest.Password = "password"
 		props := new(PropertiesRequest)
 		props.FirstName = "Jim"
 		props.LastName = "Beam"
 		props.Phone1 = "5555555555"
 		props.Email1 = "someone@noreply.com"
-		props.AuxId1 = "TestAuxID1Data"
+		props.AuxID1 = "TestAuxID1Data"
 		postRequest.Props = props
 		kbq := new(KnowledgeBase)
 		kbq1 := new(KnowledgeBaseData)
@@ -84,10 +85,10 @@ func TestProfileRequest(t *testing.T ){
 	} else {
 		putRequest := new(Request)
 		putProps := new(PropertiesRequest)
-		putProps.AuxId2 = "UpdateAuxId2"
+		putProps.AuxID2 = "UpdateAuxId2"
 		putKbq := new(KnowledgeBase)
 		putKbq1 := new(KnowledgeBaseData)
-		putKbq1.Question = "Who was your favorit teacher?"
+		putKbq1.Question = "Who was your favorite teacher?"
 		putKbq1.Answer = "teacher"
 		putKbq.Kbq2 = putKbq1
 		putRequest.Props = putProps

@@ -1,11 +1,7 @@
-package adaptauth
+package validators
 
-import (
-	"fmt"
-	"testing"
-
-	sa "github.com/secureauthcorp/saidp-sdk-go"
-)
+import "net/http"
+import "fmt"
 
 /*
 **********************************************************************
@@ -34,27 +30,49 @@ import (
 **********************************************************************
  */
 
-const (
-	appID  = ""
-	appKey = ""
-	host   = "host.company.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
-	userIP = "192.168.0.1"
+var (
+	allowedMethods = []string{http.MethodGet, http.MethodPost, http.MethodPut}
+	typeList       = []string{"call", "sms", "email"}
 )
 
-func TestAdaptAuthRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
-	if err != nil {
-		fmt.Println(err)
+// ValidateHTTPMethod :
+//	exportable helper to validate expected http method verbs.
+func ValidateHTTPMethod(str string) bool {
+	for _, v := range allowedMethods {
+		if v == str {
+			return true
+		}
 	}
-	adaptRequest := new(Request)
+	return false
+}
 
-	adaptResponse, err := adaptRequest.EvaluateAdaptiveAuth(client, user, userIP)
-	if err != nil {
-		fmt.Println(err)
+// ValidateRequestType :
+//	exportable helper to validate expected request type for adhoc otp delivery.
+func ValidateRequestType(str string) bool {
+	for _, v := range typeList {
+		if v == str {
+			return true
+		}
 	}
-	fmt.Println("Response Struct from SecureAuth IdP API: ")
-	fmt.Printf("%#v\n", adaptResponse)
+	return false
+}
+
+// ValidateClientParams :
+// exportable helper to validate expected client parameters for calling NewClient()
+func ValidateClientParams(params map[string]string) (bool, error) {
+	for k, v := range params {
+		if isNil(v) {
+			return false, fmt.Errorf("%v is required for creating a new client", k)
+		}
+	}
+	return true, nil
+}
+
+// isNill :
+//	non-exportable helper to nil check a string.
+func isNil(s string) bool {
+	if len(s) <= 0 {
+		return true
+	}
+	return false
 }

@@ -1,16 +1,17 @@
 package accesshistory
 
 import (
-	"net/http"
-	sa "github.com/secureauthcorp/saidp-sdk-go"
 	"encoding/json"
+	"net/http"
+
+	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -31,31 +32,29 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const endpoint = "/api/v1/accesshistory"
 
-// Summary:
+// Response :
 // 	Response struct that will be populated after the post request.
-
 type Response struct {
-	Status		string		`json:"status,omitempty"`
-	Message		string		`json:"message,omitempty"`
-	HttpResponse	*http.Response	`json:"-,omitempty"`
+	Status       string         `json:"status,omitempty"`
+	Message      string         `json:"message,omitempty"`
+	HTTPResponse *http.Response `json:"-,omitempty"`
 }
 
-// Summary:
+// Request :
 //	Request struct to build the required post parameters.
 // Fields:
 //	[Required] UserId: the username that you want to submit access history for.
 //	[Required] IpAddress:  ip address the user is connecting from that you wish to record the history of.
-
 type Request struct {
-	UserId		string 		`json:"user_id"`
-	IpAddress	string		`json:"ip_address"`
+	UserID    string `json:"user_id"`
+	IPAddress string `json:"ip_address"`
 }
 
-// Summary:
+// Post :
 //	Executes a post to the access history endpoint.
 // Parameters:
 // 	[Required] r: should have all required fields of the struct populated before using.
@@ -63,8 +62,7 @@ type Request struct {
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) Post(c *sa.Client)(*Response, error) {
+func (r *Request) Post(c *sa.Client) (*Response, error) {
 	jsonRequest, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -78,15 +76,15 @@ func (r *Request) Post(c *sa.Client)(*Response, error) {
 		return nil, err
 	}
 	accessResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(accessResponse); err != nil{
+	if err := json.NewDecoder(httpResponse.Body).Decode(accessResponse); err != nil {
 		return nil, err
 	}
-	accessResponse.HttpResponse = httpResponse
+	accessResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return accessResponse, nil
 }
 
-// Summary:
+// SetAccessHistory :
 //	Helper function for making Access History Posts
 // Parameters:
 //	[Required] c: passing in the client containing authorization and host information.
@@ -95,10 +93,9 @@ func (r *Request) Post(c *sa.Client)(*Response, error) {
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-
-func (r *Request) SetAccessHistory(c *sa.Client, userId string, ipAddress string)(*Response, error){
-	r.UserId = userId
-	r.IpAddress = ipAddress
+func (r *Request) SetAccessHistory(c *sa.Client, userID string, ipAddress string) (*Response, error) {
+	r.UserID = userID
+	r.IPAddress = ipAddress
 	aHistoryResponse, err := r.Post(c)
 	if err != nil {
 		return nil, err

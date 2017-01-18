@@ -1,17 +1,18 @@
 package saidp_sdk_go
 
 import (
-	"testing"
-	"fmt"
 	"encoding/json"
-	"github.com/jhickman/saidp-sdk-go/services/factors"
+	"fmt"
+	"testing"
+
+	"github.com/secureauthcorp/saidp-sdk-go/services/factors"
 )
 
 /*
 **********************************************************************
 *   @author jhickman@secureauth.com
 *
-*  Copyright (c) 2016, SecureAuth
+*  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
 *
 *    Redistribution and use in source and binary forms, with or without modification,
@@ -32,19 +33,19 @@ import (
 *    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 *    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************
-*/
+ */
 
 const (
-	appId = ""
+	appID  = ""
 	appKey = ""
-	host = "host.company.com"
-	realm = "secureauth1"
-	port = 443
-	user = "user"
+	host   = "host.company.com"
+	realm  = "secureauth1"
+	port   = 443
+	user   = "user"
 )
 
 func TestClient(t *testing.T) {
-	client, err := NewClient(appId, appKey, host, port, realm, true, false)
+	client, err := NewClient(appID, appKey, host, port, realm, true, false)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -81,11 +82,11 @@ func TestClient(t *testing.T) {
 	fmt.Println(doResponse)
 	fmt.Println("Unmarshaled HTTP Response to Factors Response: ")
 	factorResponse := new(factors.Response)
-	if err := json.NewDecoder(doResponse.Body).Decode(factorResponse); err != nil{
+	if err := json.NewDecoder(doResponse.Body).Decode(factorResponse); err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
-	factorResponse.HttpResponse = doResponse
+	factorResponse.HTTPResponse = doResponse
 	doResponse.Body.Close()
 	fmt.Println(factorResponse)
 }
