@@ -50,7 +50,7 @@ type Response struct {
 	Message      string         `json:"message,omitempty"`
 	UserID       string         `json:"user_id,omitempty"`
 	OTP          string         `json:"otp,omitempty"`
-	HTTPResponse *http.Response `json:"-,omitempty"`
+	HTTPResponse *http.Response `json:",omitempty"`
 }
 
 // Request :

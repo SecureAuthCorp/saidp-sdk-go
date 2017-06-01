@@ -46,7 +46,7 @@ type Response struct {
 	BehaviorResults BehaviorBioResults `json:"BehaviorBioResults,omitempty"`
 	Status          string             `json:"status,omitempty"`
 	Message         string             `json:"message,omitempty"`
-	HTTPResponse    *http.Response     `json:"-,omitempty"`
+	HTTPResponse    *http.Response     `json:",omitempty"`
 }
 
 // Request :

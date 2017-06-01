@@ -47,7 +47,7 @@ type Response struct {
 	PinControl    string         `json:"pin_control,omitempty"`
 	FailedWipe    string         `json:"failed_wipe,omitempty"`
 	ScreenTimeout string         `json:"screen_timeout,omitempty"`
-	HTTPResponse  *http.Response `json:"-,omitempty"`
+	HTTPResponse  *http.Response `json:",omitempty"`
 }
 
 // Request :
@@ -58,10 +58,10 @@ type Response struct {
 //	[Required] Token: The otp of the user you are retrieving oath settings for.
 //	[Required] FactorID: The id of the device you are retrieving oath settings for.
 type Request struct {
-	UserID   string `json:"user_id"`
-	Password string `json:"password"`
-	Token    string `json:"token"`
-	FactorID string `json:"factor_id"`
+	UserID   string `json:"user_id,omitempty"`
+	Password string `json:"password,omitempty"`
+	Token    string `json:"token,omitempty"`
+	FactorID string `json:"factor_id,omitempty"`
 }
 
 // Post :

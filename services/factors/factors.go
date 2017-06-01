@@ -44,7 +44,7 @@ type Response struct {
 	Status       string         `json:"status"`
 	Message      string         `json:"message"`
 	Factors      Factors        `json:"factors,omitempty"`
-	HTTPResponse *http.Response `json:"-,omitempty"`
+	HTTPResponse *http.Response `json:",omitempty"`
 }
 
 // Factors :

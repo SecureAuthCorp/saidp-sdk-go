@@ -48,7 +48,7 @@ type Response struct {
 	AccessHistories []AccessHistories             `json:"accessHistories,omitempty"`
 	Status          string                        `json:"status,omitempty"`
 	Message         string                        `json:"message,omitempty"`
-	HTTPResponse    *http.Response                `json:"-,omitempty"`
+	HTTPResponse    *http.Response                `json:",omitempty"`
 }
 
 // Request :

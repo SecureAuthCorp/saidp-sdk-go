@@ -42,7 +42,7 @@ type Response struct {
 	Status       string         `json:"status,omitempty"`
 	Message      string         `json:"message,omitempty"`
 	Result       Result         `json:"numberProfileResult,omitempty"`
-	HTTPResponse *http.Response `json:"-,omitempty"`
+	HTTPResponse *http.Response `json:",omitempty"`
 }
 
 // Request :
