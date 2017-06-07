@@ -333,7 +333,11 @@ func getGMTTimestamp() string {
 		//
 		time = strings.Replace(time, "UTC", "GMT", -1)
 	}
+<<<<<<< HEAD
 	return time
+=======
+	return timegit
+>>>>>>> 0b3a8da4c46c9097ff2543224ac4317d7e179237
 }
 
 // buildAuthPayload :
