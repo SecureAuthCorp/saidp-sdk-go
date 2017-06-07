@@ -49,6 +49,7 @@ var (
 	hdrContentTypeKey   = http.CanonicalHeaderKey("Content-Type")
 	hdrAcceptKey        = http.CanonicalHeaderKey("Accept")
 	hdrDateKey          = http.CanonicalHeaderKey("Date")
+	hdrSADateKey        = http.CanonicalHeaderKey("X-SA-Date")
 	hdrAuthorizationKey = http.CanonicalHeaderKey("Authorization")
 	jsonContentType     = "application/json; charset=utf-8"
 )
@@ -87,7 +88,9 @@ func (c Client) BuildGetRequest(endpoint string) (*http.Request, error) {
 	}
 	req.Header.Set(hdrAcceptKey, jsonContentType)
 	req.Header.Set(hdrContentTypeKey, jsonContentType)
-	req.Header.Set(hdrDateKey, getGMTTimestamp())
+	ts := getGMTTimestamp()
+	req.Header.Set(hdrDateKey, ts)
+	req.Header.Set(hdrSADateKey, ts)
 	req.Header.Set(hdrAuthorizationKey, sig)
 	return req, nil
 }
@@ -276,8 +279,18 @@ func NewClient(appID string, appKey string, host string, port int, realm string,
 // getGMTTimestamp :
 //	non-exportable helper to build the GMT timestamp used in authorization and http headers.
 func getGMTTimestamp() string {
-	location, _ := time.LoadLocation("Etc/GMT")
-	return time.Now().In(location).Format(time.RFC1123)
+	time := time.Now().UTC().Format(time.RFC1123)
+	if strings.Contains(time, "UTC") {
+		// The go time library formats RFC1123 incorrectly. It places UTC at the end instead
+		// of the RFC stipulated GMT. This causes issues with server side implementations that
+		// adhere strictly to the RFC (IdP). The go team has chosen not to address it at this
+		// time. We'll work around it by forcing a string replace here.
+		//
+		// See: https://github.com/golang/go/issues/13781
+		//
+		time = strings.Replace(time, "UTC", "GMT", -1)
+	}
+	return time
 }
 
 // buildAuthPayload :
