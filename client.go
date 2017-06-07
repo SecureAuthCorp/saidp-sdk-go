@@ -322,9 +322,6 @@ func parseError(response *http.Response) (*HttpError, error) {
 // getGMTTimestamp :
 //	non-exportable helper to build the GMT timestamp used in authorization and http headers.
 func getGMTTimestamp() string {
-<<<<<<< HEAD
-	return time.Now().UTC().Format(time.RFC1123)
-=======
 	time := time.Now().UTC().Format(time.RFC1123)
 	if strings.Contains(time, "UTC") {
 		// The go time library formats RFC1123 incorrectly. It places UTC at the end instead
@@ -336,8 +333,7 @@ func getGMTTimestamp() string {
 		//
 		time = strings.Replace(time, "UTC", "GMT", -1)
 	}
-	return time
->>>>>>> develop_9.1
+	return timegit
 }
 
 // buildAuthPayload :
