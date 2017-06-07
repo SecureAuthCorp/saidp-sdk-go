@@ -38,6 +38,8 @@ const (
 	jsEndpoint      = "/api/v1/dfp/js"
 	valEndpoint     = "/api/v1/dfp/validate"
 	confirmEndpoint = "/api/v1/dfp/confirm"
+	scoreEndpoint   = "/api/v1/dfp/score"
+	saveEndpoint    = "ap1/v1/dfp/save"
 )
 
 // Response :
@@ -52,7 +54,7 @@ type Response struct {
 	Message         string         `json:"message,omitempty"`
 	UserID          string         `json:"user_id,omitempty"`
 	Source          string         `json:"src,omitempty"`
-	HTTPResponse    *http.Response `json:"-,omitempty"`
+	HTTPResponse    *http.Response `json:",omitempty"`
 }
 
 // Request :
@@ -177,7 +179,7 @@ func (r *Request) GetDfpJs(c *sa.Client) (*Response, error) {
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, fingerprintId string, fingerprint string, accept string, acceptCharset string, acceptEncoding string, acceptLanguage string) (*Response, error) {
+func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, fingerprintID string, fingerprint string, accept string, acceptCharset string, acceptEncoding string, acceptLanguage string) (*Response, error) {
 	if err := json.Unmarshal([]byte(fingerprint), &r); err != nil {
 		return nil, err
 	}
@@ -185,7 +187,7 @@ func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, f
 	r.Fingerprint.AcceptCharset = acceptCharset
 	r.Fingerprint.AcceptEncoding = acceptEncoding
 	r.Fingerprint.AcceptLang = acceptLanguage
-	r.FingerprintID = fingerprintId
+	r.FingerprintID = fingerprintID
 	r.UserID = userID
 	r.HostAddress = hostAddress
 	validateResponse, err := r.Post(c, valEndpoint)
@@ -212,4 +214,70 @@ func (r *Request) ConfirmDfp(c *sa.Client, userID string, fingerprintID string) 
 		return nil, err
 	}
 	return confirmResponse, nil
+}
+
+// ScoreDfp :
+//	Helper function for posting to the dfp validate endpoint.
+// Parameters:
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] userID: the username of the user you wish to validate a dfp for.
+//	[Required] hostAddress: the ip address of the user's device.
+//	fingerprintId: if it is a known fingerprint, provide the fingerprint id to validate against.
+//	[Required] fingerprint: the json string returned by the javascript dfp script.
+//	[Required] accept: accept header of the users request.
+//	[Required] acceptCharset: the accept_charset header of the users request.
+//	[Required] acceptEncoding: the accept_encoding header of the users request.
+//	[Required] acceptLanguage: the accept_language header of the users request.
+// Returns:
+//	Response: Struct marshaled from the Json response from the API endpoints.
+//	Error: If an error is encountered, response will be nil and the error must be handled.
+func (r *Request) ScoreDfp(c *sa.Client, userID string, hostAddress string, fingerprintID string, fingerprint string, accept string, acceptCharset string, acceptEncoding string, acceptLanguage string) (*Response, error) {
+	if err := json.Unmarshal([]byte(fingerprint), &r); err != nil {
+		return nil, err
+	}
+	r.Fingerprint.Accept = accept
+	r.Fingerprint.AcceptCharset = acceptCharset
+	r.Fingerprint.AcceptEncoding = acceptEncoding
+	r.Fingerprint.AcceptLang = acceptLanguage
+	r.FingerprintID = fingerprintID
+	r.UserID = userID
+	r.HostAddress = hostAddress
+	validateResponse, err := r.Post(c, scoreEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return validateResponse, nil
+}
+
+// SaveDfp :
+//	Helper function for posting to the dfp validate endpoint.
+// Parameters:
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] userID: the username of the user you wish to validate a dfp for.
+//	[Required] hostAddress: the ip address of the user's device.
+//	fingerprintId: if it is a known fingerprint, provide the fingerprint id to validate against.
+//	[Required] fingerprint: the json string returned by the javascript dfp script.
+//	[Required] accept: accept header of the users request.
+//	[Required] acceptCharset: the accept_charset header of the users request.
+//	[Required] acceptEncoding: the accept_encoding header of the users request.
+//	[Required] acceptLanguage: the accept_language header of the users request.
+// Returns:
+//	Response: Struct marshaled from the Json response from the API endpoints.
+//	Error: If an error is encountered, response will be nil and the error must be handled.
+func (r *Request) SaveDfp(c *sa.Client, userID string, hostAddress string, fingerprintID string, fingerprint string, accept string, acceptCharset string, acceptEncoding string, acceptLanguage string) (*Response, error) {
+	if err := json.Unmarshal([]byte(fingerprint), &r); err != nil {
+		return nil, err
+	}
+	r.Fingerprint.Accept = accept
+	r.Fingerprint.AcceptCharset = acceptCharset
+	r.Fingerprint.AcceptEncoding = acceptEncoding
+	r.Fingerprint.AcceptLang = acceptLanguage
+	r.FingerprintID = fingerprintID
+	r.UserID = userID
+	r.HostAddress = hostAddress
+	validateResponse, err := r.Post(c, saveEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return validateResponse, nil
 }

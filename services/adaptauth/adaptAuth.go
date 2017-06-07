@@ -39,12 +39,12 @@ const endpoint = "/api/v1/adaptauth"
 // Response :
 //	Response struct that will be populated after the post request.
 type Response struct {
-	RealmWorkflow   string `json:"realm_workflow,omitempty"`
-	SuggestedAction string `json:"suggested_action,omitempty"`
-	RedirectURL     string `json:"redirect_url,omitempty"`
-	Status          string `json:"status,omitempty"`
-	Message         string `json:"message,omitempty"`
-	HTTPResponse    *http.Response
+	RealmWorkflow   string         `json:"realm_workflow,omitempty"`
+	SuggestedAction string         `json:"suggested_action,omitempty"`
+	RedirectURL     string         `json:"redirect_url,omitempty"`
+	Status          string         `json:"status,omitempty"`
+	Message         string         `json:"message,omitempty"`
+	HTTPResponse    *http.Response `json:",omitempty"`
 }
 
 // Request :

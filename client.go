@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	validators "github.com/secureauthcorp/saidp-sdk-go/utilities/validators"
 )
 
@@ -63,6 +65,13 @@ type Client struct {
 	Realm                string
 	SSL                  bool
 	BypassCertValidation bool
+}
+
+type HttpError struct {
+	Status     string `json:"status,omitempty"`
+	Message    string `json:"message,omitempty"`
+	Code       int    `json:",omitempty"`
+	StatusText string `json:",omitempty"`
 }
 
 // BuildGetRequest :
@@ -202,6 +211,17 @@ func (c Client) Do(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != 200 {
+		httpError, err := parseError(resp)
+		if err != nil {
+			return nil, err
+		}
+		jsonError, err := json.Marshal(httpError)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(string(jsonError))
+	}
 	return resp, nil
 }
 
@@ -274,6 +294,29 @@ func NewClient(appID string, appKey string, host string, port int, realm string,
 	c.BypassCertValidation = bypassCert
 
 	return c, nil
+}
+
+// parseError :
+//  non-exportable helper to parse error response codes between handled (loosely expected http status)
+//  and non-handled status codes.
+func parseError(response *http.Response) (*HttpError, error) {
+	httpError := new(HttpError)
+	handledStatus := []int{400, 404, 500}
+	for _, status := range handledStatus {
+		if status == response.StatusCode {
+			if err := json.NewDecoder(response.Body).Decode(httpError); err != nil {
+				return nil, err
+			}
+			httpError.Code = response.StatusCode
+			httpError.StatusText = http.StatusText(httpError.Code)
+			return httpError, nil
+		}
+	}
+	httpError.Code = response.StatusCode
+	httpError.StatusText = http.StatusText(httpError.Code)
+	httpError.Status = response.Status
+	httpError.Message = httpError.StatusText
+	return httpError, nil
 }
 
 // getGMTTimestamp :

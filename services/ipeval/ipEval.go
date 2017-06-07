@@ -40,7 +40,7 @@ const endpoint = "/api/v1/ipeval"
 //	Response struct that will be populated after the post request.
 type Response struct {
 	IPEvaluation IPEvaluation   `json:"ip_evaluation,omitempty"`
-	HTTPResponse *http.Response `json:"-,omitempty"`
+	HTTPResponse *http.Response `json:",omitempty"`
 }
 
 // Request :

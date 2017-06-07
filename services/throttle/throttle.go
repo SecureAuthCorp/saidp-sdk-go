@@ -50,7 +50,7 @@ type Response struct {
 	Status       string         `json:"status,omitempty"`
 	Message      string         `json:"message,omitempty"`
 	Count        int            `json:"count,omitempty"`
-	HTTPResponse *http.Response `json:"-,omitempty"`
+	HTTPResponse *http.Response `json:",omitempty"`
 }
 
 // Get :
