@@ -67,7 +67,8 @@ type Client struct {
 	BypassCertValidation bool
 }
 
-type HttpError struct {
+//HTTPError : struct to hold error message status for proper handling.
+type HTTPError struct {
 	Status     string `json:"status,omitempty"`
 	Message    string `json:"message,omitempty"`
 	Code       int    `json:",omitempty"`
