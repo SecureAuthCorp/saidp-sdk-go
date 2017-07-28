@@ -300,8 +300,8 @@ func NewClient(appID string, appKey string, host string, port int, realm string,
 // parseError :
 //  non-exportable helper to parse error response codes between handled (loosely expected http status)
 //  and non-handled status codes.
-func parseError(response *http.Response) (*HttpError, error) {
-	httpError := new(HttpError)
+func parseError(response *http.Response) (*HTTPError, error) {
+	httpError := new(HTTPError)
 	handledStatus := []int{400, 404, 500}
 	for _, status := range handledStatus {
 		if status == response.StatusCode {
