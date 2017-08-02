@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -53,7 +52,7 @@ type Response struct {
 	AccessHistories []AccessHistories             `json:"accessHistories,omitempty"`
 	Status          string                        `json:"status,omitempty"`
 	Message         string                        `json:"message,omitempty"`
-	HTTPResponse    *http.Response                `json:",omitempty"`
+	HTTPResponse    *http.Response                `json:"-"`
 }
 
 // Request :
@@ -265,17 +264,16 @@ func buildEndpointPath(userID string) string {
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	responseBody, err := ioutil.ReadAll(r.HTTPResponse.Body)
+	jsonResponse, err := json.Marshal(r)
 	if err != nil {
 		return false, err
 	}
-	responseString := string(responseBody)
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(responseString)
+	buffer.WriteString(string(jsonResponse))
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

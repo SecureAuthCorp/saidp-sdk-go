@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -55,7 +54,7 @@ type Response struct {
 	Message      string         `json:"message,omitempty"`
 	UserID       string         `json:"user_id,omitempty"`
 	OTP          string         `json:"otp,omitempty"`
-	HTTPResponse *http.Response `json:",omitempty"`
+	HTTPResponse *http.Response `json:"-"`
 }
 
 // Request :
@@ -507,17 +506,16 @@ func buildEndpointPath(refID string) string {
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	responseBody, err := ioutil.ReadAll(r.HTTPResponse.Body)
+	jsonResponse, err := json.Marshal(r)
 	if err != nil {
 		return false, err
 	}
-	responseString := string(responseBody)
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(responseString)
+	buffer.WriteString(string(jsonResponse))
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

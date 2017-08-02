@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -60,7 +59,7 @@ type Response struct {
 	Message         string         `json:"message,omitempty"`
 	UserID          string         `json:"user_id,omitempty"`
 	Source          string         `json:"src,omitempty"`
-	HTTPResponse    *http.Response `json:",omitempty"`
+	HTTPResponse    *http.Response `json:"-"`
 }
 
 // Request :
@@ -299,17 +298,16 @@ func (r *Request) SaveDfp(c *sa.Client, userID string, hostAddress string, finge
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	responseBody, err := ioutil.ReadAll(r.HTTPResponse.Body)
+	jsonResponse, err := json.Marshal(r)
 	if err != nil {
 		return false, err
 	}
-	responseString := string(responseBody)
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(responseString)
+	buffer.WriteString(string(jsonResponse))
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)
