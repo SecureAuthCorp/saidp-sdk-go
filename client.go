@@ -194,6 +194,22 @@ func (c Client) Do(req *http.Request) (*http.Response, error) {
 	if c.BypassCertValidation {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		httpClient.Transport = transport
+	} else {
+		// If the bypass flag is not set, consider us in a "production" environment and
+		// lock down TLS settings appropriately.
+		transport.TLSClientConfig = &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			MaxVersion:               tls.VersionTLS12,
+			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+		}
+		httpClient.Transport = transport
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
