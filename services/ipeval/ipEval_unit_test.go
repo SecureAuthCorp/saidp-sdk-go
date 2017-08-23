@@ -1,4 +1,4 @@
-package accesshistory
+package ipeval
 
 import (
 	"bytes"
@@ -52,8 +52,7 @@ const (
 	uUserIP = "192.168.0.1"
 )
 
-// TestAccessHistory_Unit tests the submitting of an AccessHistory record. This is a unit test.
-func TestAccessHistory_Unit(t *testing.T) {
+func TestIpEval_Unit(t *testing.T) {
 	defer gock.Off()
 
 	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
@@ -68,16 +67,16 @@ func TestAccessHistory_Unit(t *testing.T) {
 	}
 	// Set up a test responder for the api.
 	gock.New("https://idp.host.com:443").
-		Post("/secureauth1/api/v1/accesshistory").
+		Post("/secureauth1/api/v1/ipeval").
 		Reply(200).
 		BodyString(generateResponse()).
 		SetHeaders(headers)
-	ahRequest := new(Request)
-	ahResponse, err := ahRequest.SetAccessHistory(client, uUser, uUserIP)
+	ipevalRequest := new(Request)
+	ipevalResponse, err := ipevalRequest.EvaluateIP(client, uUser, uUserIP)
 	if err != nil {
 		t.Error(err)
 	}
-	valid, err := ahResponse.IsSignatureValid(client)
+	valid, err := ipevalResponse.IsSignatureValid(client)
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,9 +86,10 @@ func TestAccessHistory_Unit(t *testing.T) {
 }
 
 func generateResponse() string {
-	response := &Response{
-		Status:  "valid",
-		Message: "Access History request has been processed.",
+	var jsonEval = `{"ip_evaluation":{"method":"aggregation","ip":"78.43.156.114","risk_factor":100,"risk_color":"red","risk_desc":"Extreme risk involved","geoloc":{"country":"germany","country_code":"de","region":"baden-wuerttemberg","region_code":"","city":"stuttgart","latitude":"48.7754","longtitude":"9.1818","internet_service_provider":"kabel baden-wuerttemburg gmbh & co. kg","organization":"kabel bw gmbh"},"factoring":{"latitude":48.7754,"longitude":9.1818,"threatType":100,"threatCategory":0},"factor_description":{"geoContinent":"europe","geoCountry":"germany","geoCountryCode":"de","geoCountryCF":"99","geoRegion":"","geoState":"baden-wuerttemberg","geoStateCode":"","geoStateCF":"88","geoCity":"stuttgart","geoCityCF":"77","geoPostalCode":"70173","geoAreaCode":"","geoTimeZone":"1","geoLatitude":"48.7754","geoLongitude":"9.1818","dma":"","msa":"","connectionType":"cable","lineSpeed":"medium","ipRoutingType":"fixed","geoAsn":"29562","sld":"kabel-badenwuerttemberg","tld":"de","organization":"kabel baden-wuerttemburg gmbh & co. kg","carrier":"kabel bw gmbh","anonymizer_status":"","proxyLevel":"","proxyType":"","proxyLastDetected":"","hostingFacility":"false","threatType":"Anonymous Proxy","threatCategory":"Anonymous Proxy"}},"status":"verified","message":""}`
+	response := new(Response)
+	if err := json.Unmarshal([]byte(jsonEval), &response); err != nil {
+		return ""
 	}
 	bytes, err := json.Marshal(response)
 	if err != nil {

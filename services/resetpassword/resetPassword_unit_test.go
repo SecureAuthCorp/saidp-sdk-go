@@ -1,4 +1,4 @@
-package accesshistory
+package resetpassword
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -49,11 +48,9 @@ const (
 	uRealm  = "secureauth1"
 	uPort   = 443
 	uUser   = "user"
-	uUserIP = "192.168.0.1"
 )
 
-// TestAccessHistory_Unit tests the submitting of an AccessHistory record. This is a unit test.
-func TestAccessHistory_Unit(t *testing.T) {
+func ResetPassword_Unit(t *testing.T) {
 	defer gock.Off()
 
 	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
@@ -61,41 +58,40 @@ func TestAccessHistory_Unit(t *testing.T) {
 		t.Error(err)
 	}
 
-	n := time.Now()
-	headers := map[string]string{
-		"X-SA-DATE":      n.String(),
-		"X-SA-SIGNATURE": makeResponseSignature(client, generateResponse(), n.String()),
+	responseMock := &Response{
+		Status:  "success",
+		Message: "Password was reset",
 	}
-	// Set up a test responder for the api.
-	gock.New("https://idp.host.com:443").
-		Post("/secureauth1/api/v1/accesshistory").
-		Reply(200).
-		BodyString(generateResponse()).
-		SetHeaders(headers)
-	ahRequest := new(Request)
-	ahResponse, err := ahRequest.SetAccessHistory(client, uUser, uUserIP)
+
+	bytes, err := json.Marshal(responseMock)
 	if err != nil {
 		t.Error(err)
 	}
-	valid, err := ahResponse.IsSignatureValid(client)
+
+	n := time.Now()
+	headers := map[string]string{
+		"X-SA-DATE":      n.String(),
+		"X-SA-SIGNATURE": makeResponseSignature(client, string(bytes), n.String()),
+	}
+	// Set up a test responder for the api.
+	gock.New("https://idp.host.com:443").
+		Post("/secureauth1/api/v1/users/" + uUser).
+		Reply(200).
+		BodyString(string(bytes)).
+		SetHeaders(headers)
+
+	resetRequest := new(Request)
+	resetResponse, err := resetRequest.ResetPassword(client, uUser, "Password1")
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err := resetResponse.IsSignatureValid(client)
 	if err != nil {
 		t.Error(err)
 	}
 	if !valid {
 		t.Error("Response signature is invalid")
 	}
-}
-
-func generateResponse() string {
-	response := &Response{
-		Status:  "valid",
-		Message: "Access History request has been processed.",
-	}
-	bytes, err := json.Marshal(response)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return string(bytes)
 }
 
 func makeResponseSignature(c *sa.Client, response string, timeStamp string) string {

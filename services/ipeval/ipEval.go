@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -45,7 +46,10 @@ const endpoint = "/api/v1/ipeval"
 //	Response struct that will be populated after the post request.
 type Response struct {
 	IPEvaluation IPEvaluation   `json:"ip_evaluation,omitempty"`
-	HTTPResponse *http.Response `json:",omitempty"`
+	Status       string         `json:"status"`
+	Message      string         `json:"message"`
+	RawJSON      string         `json:"-"`
+	HTTPResponse *http.Response `json:"-"`
 }
 
 // Request :
@@ -63,76 +67,74 @@ type Request struct {
 // IPEvaluation :
 //	Struct providing data from the post request.
 type IPEvaluation struct {
-	Method        string            `json:"method,omitempty"`
-	IP            string            `json:"ip,omitempty"`
-	RiskFactor    float32           `json:"risk_factor,omitempty"`
-	RiskColor     string            `json:"risk_color,omitempty"`
-	RiskDesc      string            `json:"risk_desc,omitempty"`
-	GeoLoc        GeoLoc            `json:"geoloc,omitempty"`
-	Factoring     Factoring         `json:"factoring,omitempty"`
-	FactoringDesc FactorDescription `json:"factor_description,omitempty"`
-	Status        string            `json:"status,omitempty"`
-	Message       string            `json:"message,omitempty"`
+	Method        *string            `json:"method"`
+	IP            *string            `json:"ip"`
+	RiskFactor    *float32           `json:"risk_factor"`
+	RiskColor     *string            `json:"risk_color"`
+	RiskDesc      *string            `json:"risk_desc"`
+	GeoLoc        *GeoLoc            `json:"geoloc"`
+	Factoring     *Factoring         `json:"factoring"`
+	FactoringDesc *FactorDescription `json:"factor_description"`
 }
 
 // GeoLoc :
 //	Struct providing data from the post request.
 type GeoLoc struct {
-	Country      string `json:"country,omitempty"`
-	CountryCode  string `json:"country_code,omitempty"`
-	Region       string `json:"region,omitempty"`
-	RegionCode   string `json:"region_code,omitempty"`
-	City         string `json:"city,omitempty"`
-	Latitude     string `json:"latitude,omitempty"`
-	Longtitude   string `json:"longtitude,omitempty"`
-	Isp          string `json:"internet_service_provider,omitempty"`
-	Organization string `json:"organization,omitempty"`
+	Country      *string `json:"country"`
+	CountryCode  *string `json:"country_code"`
+	Region       *string `json:"region"`
+	RegionCode   *string `json:"region_code"`
+	City         *string `json:"city"`
+	Latitude     *string `json:"latitude"`
+	Longtitude   *string `json:"longtitude"`
+	Isp          *string `json:"internet_service_provider"`
+	Organization *string `json:"organization"`
 }
 
 // Factoring :
 //	Struct providing data from the post request.
 type Factoring struct {
-	Latitude       float32 `json:"latitude,omitempty"`
-	Longitude      float32 `json:"longitude,omitempty"`
-	ThreatType     float32 `json:"threatType,omitempty"`
-	ThreatCategory float32 `json:"threatCategory,omitempty"`
+	Latitude       float32 `json:"latitude"`
+	Longitude      float32 `json:"longitude"`
+	ThreatType     float32 `json:"threatType"`
+	ThreatCategory float32 `json:"threatCategory"`
 }
 
 // FactorDescription :
 //	Struct providing data from the post request.
 type FactorDescription struct {
-	GeoContinent      string `json:"geoContinent,omitempty"`
-	GeoCountry        string `json:"geoCountry,omitempty"`
-	GeoCountryCode    string `json:"geoCountryCode,omitempty"`
-	GeoCountryCF      string `json:"geoCountryCF,omitempty"`
-	GeoRegion         string `json:"geoRegion,omitempty"`
-	GeoState          string `json:"geoState,omitempty"`
-	GeoStateCode      string `json:"geoStateCode,omitempty"`
-	GeoStateCF        string `json:"geoStateCF,omitempty"`
-	GeoCity           string `json:"geoCity,omitempty"`
-	GeoCityCF         string `json:"geoCityCF,omitempty"`
-	GeoPostalCode     string `json:"geoPostalCode,omitempty"`
-	GeoAreaCode       string `json:"geoAreaCode,omitempty"`
-	GeoTimeZone       string `json:"geoTimeZone,omitempty"`
-	GeoLatitude       string `json:"geoLatitude,omitempty"`
-	GeoLongitude      string `json:"geoLongitude,omitempty"`
-	Dma               string `json:"dma,omitempty"`
-	Msa               string `json:"msa,omitempty"`
-	ConnectionType    string `json:"connectionType,omitempty"`
-	LineSpeed         string `json:"lineSpeed,omitempty"`
-	IPRoutingType     string `json:"ipRoutingType,omitempty"`
-	GeoAsn            string `json:"geoAsn,omitempty"`
-	Sld               string `json:"sld,omitempty"`
-	Tld               string `json:"tld,omitempty"`
-	Organization      string `json:"organization,omitempty"`
-	Carrier           string `json:"carrier,omitempty"`
-	AnonymizerStatus  string `json:"anonymizer_status,omitempty"`
-	ProxyLevel        string `json:"proxyLevel,omitempty"`
-	ProxyType         string `json:"proxyType,omitempty"`
-	ProxyLastDetected string `json:"proxyLastDetected,omitempty"`
-	HostingFacility   string `json:"hostingFacility,omitempty"`
-	ThreatType        string `json:"threatType,omitempty"`
-	ThreatCategory    string `json:"threatCategory,omitempty"`
+	GeoContinent      string `json:"geoContinent"`
+	GeoCountry        string `json:"geoCountry"`
+	GeoCountryCode    string `json:"geoCountryCode"`
+	GeoCountryCF      string `json:"geoCountryCF"`
+	GeoRegion         string `json:"geoRegion"`
+	GeoState          string `json:"geoState"`
+	GeoStateCode      string `json:"geoStateCode"`
+	GeoStateCF        string `json:"geoStateCF"`
+	GeoCity           string `json:"geoCity"`
+	GeoCityCF         string `json:"geoCityCF"`
+	GeoPostalCode     string `json:"geoPostalCode"`
+	GeoAreaCode       string `json:"geoAreaCode"`
+	GeoTimeZone       string `json:"geoTimeZone"`
+	GeoLatitude       string `json:"geoLatitude"`
+	GeoLongitude      string `json:"geoLongitude"`
+	Dma               string `json:"dma"`
+	Msa               string `json:"msa"`
+	ConnectionType    string `json:"connectionType"`
+	LineSpeed         string `json:"lineSpeed"`
+	IPRoutingType     string `json:"ipRoutingType"`
+	GeoAsn            string `json:"geoAsn"`
+	Sld               string `json:"sld"`
+	Tld               string `json:"tld"`
+	Organization      string `json:"organization"`
+	Carrier           string `json:"carrier"`
+	AnonymizerStatus  string `json:"anonymizer_status"`
+	ProxyLevel        string `json:"proxyLevel"`
+	ProxyType         string `json:"proxyType"`
+	ProxyLastDetected string `json:"proxyLastDetected"`
+	HostingFacility   string `json:"hostingFacility"`
+	ThreatType        string `json:"threatType"`
+	ThreatCategory    string `json:"threatCategory"`
 }
 
 // Post :
@@ -157,9 +159,15 @@ func (r *Request) Post(c *sa.Client) (*Response, error) {
 		return nil, err
 	}
 	ipEvalResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(ipEvalResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, ipEvalResponse); err != nil {
+		return nil, err
+	}
+	ipEvalResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	ipEvalResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return ipEvalResponse, nil
@@ -196,16 +204,12 @@ func (r *Request) EvaluateIP(c *sa.Client, userID string, ipAddress string) (*Re
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	jsonResponse, err := json.Marshal(r)
-	if err != nil {
-		return false, err
-	}
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(string(jsonResponse))
+	buffer.WriteString(r.RawJSON)
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

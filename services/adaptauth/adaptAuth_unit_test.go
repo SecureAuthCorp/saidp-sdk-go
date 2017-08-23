@@ -1,9 +1,17 @@
-package ipeval
+package adaptauth
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/h2non/gock"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -35,25 +43,72 @@ import (
  */
 
 const (
-	appID    = ""
-	appKey   = ""
-	host     = "host.company.com"
-	realm    = "secureauth1"
-	port     = 443
-	user     = "user"
-	hostAddr = "192.168.0.1"
+	uAppID  = "12345"
+	uAppKey = "12345"
+	uHost   = "idp.host.com"
+	uRealm  = "secureauth1"
+	uPort   = 443
+	uUser   = "user"
+	uUserIP = "192.168.0.1"
 )
 
-func TestIpEvalRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+// TestAdaptAuth_Unit test the submitting of an Adaptive Authentication request. This is a unit test.
+func TestAdaptAuth_Unit(t *testing.T) {
+	defer gock.Off()
+
+	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	n := time.Now()
+	headers := map[string]string{
+		"X-SA-DATE":      n.String(),
+		"X-SA-SIGNATURE": makeResponseSignature(client, generateResponse(), n.String()),
+	}
+	// Set up a test responder for the api.
+	gock.New("https://idp.host.com:443").
+		Post("/secureauth1/api/v1/adaptauth").
+		Reply(200).
+		BodyString(generateResponse()).
+		SetHeaders(headers)
+	aaRequest := new(Request)
+	aaResponse, err := aaRequest.EvaluateAdaptiveAuth(client, uUser, uUserIP)
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err := aaResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid.")
+	}
+}
+
+func generateResponse() string {
+	response := &Response{
+		Status:  "valid",
+		Message: "Access History request has been processed.",
+	}
+	bytes, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println(err)
 	}
-	evalRequest := new(Request)
-	evalResponse, err := evalRequest.EvaluateIP(client, user, hostAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Response Struct for IpEval Response: ")
-	fmt.Println(evalResponse)
+	return string(bytes)
+}
+
+func makeResponseSignature(c *sa.Client, response string, timeStamp string) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(timeStamp)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(response)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	return base64.StdEncoding.EncodeToString(sig.Sum(nil))
 }

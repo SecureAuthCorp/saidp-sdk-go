@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -47,8 +48,9 @@ type Response struct {
 	RealmWorkflow   string         `json:"realm_workflow,omitempty"`
 	SuggestedAction string         `json:"suggested_action,omitempty"`
 	RedirectURL     string         `json:"redirect_url,omitempty"`
-	Status          string         `json:"status,omitempty"`
-	Message         string         `json:"message,omitempty"`
+	Status          string         `json:"status"`
+	Message         string         `json:"message"`
+	RawJSON         string         `json:"-"`
 	HTTPResponse    *http.Response `json:"-"`
 }
 
@@ -92,9 +94,15 @@ func (r *Request) Post(c *sa.Client) (*Response, error) {
 		return nil, err
 	}
 	adaptResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(adaptResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, adaptResponse); err != nil {
+		return nil, err
+	}
+	adaptResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	adaptResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return adaptResponse, nil
@@ -130,16 +138,12 @@ func (r *Request) EvaluateAdaptiveAuth(c *sa.Client, userID string, ipAddress st
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	jsonResponse, err := json.Marshal(r)
-	if err != nil {
-		return false, err
-	}
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(string(jsonResponse))
+	buffer.WriteString(r.RawJSON)
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

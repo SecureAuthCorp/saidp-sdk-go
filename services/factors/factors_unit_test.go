@@ -1,4 +1,4 @@
-package accesshistory
+package factors
 
 import (
 	"bytes"
@@ -49,11 +49,9 @@ const (
 	uRealm  = "secureauth1"
 	uPort   = 443
 	uUser   = "user"
-	uUserIP = "192.168.0.1"
 )
 
-// TestAccessHistory_Unit tests the submitting of an AccessHistory record. This is a unit test.
-func TestAccessHistory_Unit(t *testing.T) {
+func TestFactors_Unit(t *testing.T) {
 	defer gock.Off()
 
 	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
@@ -68,16 +66,17 @@ func TestAccessHistory_Unit(t *testing.T) {
 	}
 	// Set up a test responder for the api.
 	gock.New("https://idp.host.com:443").
-		Post("/secureauth1/api/v1/accesshistory").
+		Get("/secureauth1/api/v1/users/" + uUser + "/factors").
 		Reply(200).
 		BodyString(generateResponse()).
 		SetHeaders(headers)
-	ahRequest := new(Request)
-	ahResponse, err := ahRequest.SetAccessHistory(client, uUser, uUserIP)
+
+	factorRequest := new(Request)
+	factorResponse, err := factorRequest.Get(client, uUser)
 	if err != nil {
 		t.Error(err)
 	}
-	valid, err := ahResponse.IsSignatureValid(client)
+	valid, err := factorResponse.IsSignatureValid(client)
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,9 +86,10 @@ func TestAccessHistory_Unit(t *testing.T) {
 }
 
 func generateResponse() string {
-	response := &Response{
-		Status:  "valid",
-		Message: "Access History request has been processed.",
+	var jsonFactors = `{"status":"found","message":"","user_id":"jsmith","factors":[{"type":"phone","id":"Phone1","value":"123-456-7890","capabilities":["call"]},{"type":"phone","id":"Phone2","value":"987-654-3210","capabilities":["sms","call"]},{"type":"email","id":"Email1","value":"jsmith@company.com"},{"type":"kbq","id":"KBQ1","value":"What city were you born in?"},{"type":"kbq","id":"KBQ2","value":"What was your favorite childhood game?"},{"type":"kbq","id":"KBQ3","value":"What was your dream job as a child?"},{"type":"kbq","id":"KBQ4","value":"Who is your personal hero?"},{"type":"kbq","id":"KBQ5","value":"What is the last name of your favorite school teacher?"},{"type":"kbq","id":"KBQ6","value":"What is the name of your favorite childhood pet?"},{"type":"help_desk","id":"HelpDesk1","value":"987-654-3210"},{"type":"help_desk","id":"HelpDesk2","value":"987-654-3211"},{"type":"push","id":"8117b62897734d71b48ecdcab19bd437","value":"HTC One","capabilities":["push","push_accept"]},{"type":"oath","id":"63c6b390cac04efb8d283828ed29c120","value":"SecureAuth OTP Mobile App"},{"type":"pin","value":"Private PIN"}]}`
+	response := new(Response)
+	if err := json.Unmarshal([]byte(jsonFactors), &response); err != nil {
+		return ""
 	}
 	bytes, err := json.Marshal(response)
 	if err != nil {
@@ -98,13 +98,13 @@ func generateResponse() string {
 	return string(bytes)
 }
 
-func makeResponseSignature(c *sa.Client, response string, timeStamp string) string {
+func makeResponseSignature(c *sa.Client, r string, t string) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(timeStamp)
+	buffer.WriteString(t)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(response)
+	buffer.WriteString(r)
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

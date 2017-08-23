@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -52,6 +53,7 @@ type Response struct {
 	PinControl    string         `json:"pin_control,omitempty"`
 	FailedWipe    string         `json:"failed_wipe,omitempty"`
 	ScreenTimeout string         `json:"screen_timeout,omitempty"`
+	RawJSON       string         `json:"-"`
 	HTTPResponse  *http.Response `json:"-"`
 }
 
@@ -91,9 +93,15 @@ func (r *Request) Post(c *sa.Client) (*Response, error) {
 		return nil, err
 	}
 	oathResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(oathResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, oathResponse); err != nil {
+		return nil, err
+	}
+	oathResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	oathResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return oathResponse, nil
@@ -132,16 +140,12 @@ func (r *Request) GetOATHSettings(c *sa.Client, userID string, password string, 
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	jsonResponse, err := json.Marshal(r)
-	if err != nil {
-		return false, err
-	}
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(string(jsonResponse))
+	buffer.WriteString(r.RawJSON)
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

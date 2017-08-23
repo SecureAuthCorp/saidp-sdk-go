@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -51,9 +52,10 @@ type Request struct {
 // Response :
 //	Response struct that will be populated after the request.
 type Response struct {
-	Status       string         `json:"status,omitempty"`
-	Message      string         `json:"message,omitempty"`
+	Status       string         `json:"status"`
+	Message      string         `json:"message"`
 	Count        int            `json:"count,omitempty"`
+	RawJSON      string         `json:"-"`
 	HTTPResponse *http.Response `json:"-"`
 }
 
@@ -77,9 +79,15 @@ func (r *Request) Get(c *sa.Client, user string) (*Response, error) {
 		return nil, err
 	}
 	throttleResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(throttleResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, throttleResponse); err != nil {
+		return nil, err
+	}
+	throttleResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	throttleResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return throttleResponse, nil
@@ -105,9 +113,15 @@ func (r *Request) Put(c *sa.Client, user string) (*Response, error) {
 		return nil, err
 	}
 	throttleResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(throttleResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, throttleResponse); err != nil {
+		return nil, err
+	}
+	throttleResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	throttleResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return throttleResponse, nil
@@ -134,16 +148,12 @@ func buildEndpointPath(user string) string {
 func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
 	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
 	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
-	jsonResponse, err := json.Marshal(r)
-	if err != nil {
-		return false, err
-	}
 	var buffer bytes.Buffer
 	buffer.WriteString(saDate)
 	buffer.WriteString("\n")
 	buffer.WriteString(c.AppID)
 	buffer.WriteString("\n")
-	buffer.WriteString(string(jsonResponse))
+	buffer.WriteString(r.RawJSON)
 	raw := buffer.String()
 	byteKey, _ := hex.DecodeString(c.AppKey)
 	byteData := []byte(raw)

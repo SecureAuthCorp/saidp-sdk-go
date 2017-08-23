@@ -1,4 +1,4 @@
-package throttle
+package adaptauth
 
 import (
 	"fmt"
@@ -35,42 +35,31 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "idp.host.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
+	fUserIP = ""
 )
 
-func TestThrottleGet(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestAdaptAuthRequest(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	throttleRequest := new(Request)
-	getThrottleResp, err := throttleRequest.Get(client, user)
+	adaptRequest := new(Request)
+	adaptResponse, err := adaptRequest.EvaluateAdaptiveAuth(client, fUser, fUserIP)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	fmt.Println("Throttle Count Response (GET): ")
-	fmt.Println(getThrottleResp)
-}
-
-func TestThrottlePut(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+	valid, err := adaptResponse.IsSignatureValid(client)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	throttleRequest := new(Request)
-	putThrottleResp, err := throttleRequest.Put(client, user)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+	if !valid {
+		t.Error("Response signature is invalid")
 	}
-	fmt.Println("Throttle Reset Response (PUT): ")
-	fmt.Println(putThrottleResp)
+	fmt.Printf("%#v\n", adaptResponse)
 }

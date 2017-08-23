@@ -1,17 +1,8 @@
-package accesshistory
+package behavebio
 
 import (
-	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
 	"testing"
-	"time"
 
-	"github.com/h2non/gock"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -43,72 +34,54 @@ import (
  */
 
 const (
-	uAppID  = "12345"
-	uAppKey = "12345"
-	uHost   = "idp.host.com"
-	uRealm  = "secureauth1"
-	uPort   = 443
-	uUser   = "user"
-	uUserIP = "192.168.0.1"
+	fAppID         = ""
+	fAppKey        = ""
+	fHost          = ""
+	fRealm         = ""
+	fPort          = 443
+	fBehaveProfile = ``
+	fUserAgent     = ``
+	fUser          = ""
 )
 
-// TestAccessHistory_Unit tests the submitting of an AccessHistory record. This is a unit test.
-func TestAccessHistory_Unit(t *testing.T) {
-	defer gock.Off()
-
-	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
+func TestBehaveBioRequest(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
 		t.Error(err)
 	}
-
-	n := time.Now()
-	headers := map[string]string{
-		"X-SA-DATE":      n.String(),
-		"X-SA-SIGNATURE": makeResponseSignature(client, generateResponse(), n.String()),
-	}
-	// Set up a test responder for the api.
-	gock.New("https://idp.host.com:443").
-		Post("/secureauth1/api/v1/accesshistory").
-		Reply(200).
-		BodyString(generateResponse()).
-		SetHeaders(headers)
-	ahRequest := new(Request)
-	ahResponse, err := ahRequest.SetAccessHistory(client, uUser, uUserIP)
+	behaveRequest := new(Request)
+	getSrcResponse, err := behaveRequest.GetBehaveJs(client)
 	if err != nil {
 		t.Error(err)
 	}
-	valid, err := ahResponse.IsSignatureValid(client)
+	validJS, err := getSrcResponse.IsSignatureValid(client)
 	if err != nil {
 		t.Error(err)
 	}
-	if !valid {
-		t.Error("Response signature is invalid")
+	if !validJS {
+		t.Error("Get JS SRC Response signature is invalid")
 	}
-}
-
-func generateResponse() string {
-	response := &Response{
-		Status:  "valid",
-		Message: "Access History request has been processed.",
-	}
-	bytes, err := json.Marshal(response)
+	postBehaveResp, err := behaveRequest.PostBehaveProfile(client, fUser, fBehaveProfile, "192.168.0.1", fUserAgent)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	return string(bytes)
-}
+	postValid, err := postBehaveResp.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !postValid {
+		t.Error("Post Profile Response signature is invalid")
+	}
+	resetBehaveResp, err := behaveRequest.ResetBehaveProfile(client, fUser, "ALL", "ALL", "ALL")
+	if err != nil {
+		t.Error(err)
+	}
+	resetValid, err := resetBehaveResp.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !resetValid {
+		t.Error("Reset Profile Response signature is invalid")
+	}
 
-func makeResponseSignature(c *sa.Client, response string, timeStamp string) string {
-	var buffer bytes.Buffer
-	buffer.WriteString(timeStamp)
-	buffer.WriteString("\n")
-	buffer.WriteString(c.AppID)
-	buffer.WriteString("\n")
-	buffer.WriteString(response)
-	raw := buffer.String()
-	byteKey, _ := hex.DecodeString(c.AppKey)
-	byteData := []byte(raw)
-	sig := hmac.New(sha256.New, byteKey)
-	sig.Write([]byte(byteData))
-	return base64.StdEncoding.EncodeToString(sig.Sum(nil))
 }

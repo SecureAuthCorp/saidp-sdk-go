@@ -37,11 +37,11 @@ import (
 const (
 	fAppID  = ""
 	fAppKey = ""
-	fHost   = "host.company.com"
-	fRealm  = "secureauth1"
+	fHost   = ""
+	fRealm  = ""
 	fPort   = 443
-	fUser   = "user"
-	fUserIP = "192.168.0.1"
+	fUser   = ""
+	fUserIP = ""
 )
 
 func TestAccessHistoryRequest(t *testing.T) {
@@ -59,8 +59,7 @@ func TestAccessHistoryRequest(t *testing.T) {
 		t.Error(err)
 	}
 	if !valid {
-		t.Error("Response Signature is invalid")
+		t.Error("Response signature is invalid")
 	}
-	fmt.Println("Response signature does not match!")
 	fmt.Printf("%#v\n", accessResponse)
 }

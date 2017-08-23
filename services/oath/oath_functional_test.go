@@ -1,17 +1,15 @@
-package otp
+package oath
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
-	"github.com/h2non/gock"
+	factors "github.com/jhickmansa/saidp-sdk-go/services/factors"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
 **********************************************************************
-*   @author scox@secureauth.com
+*   @author jhickman@secureauth.com
 *
 *  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
@@ -37,48 +35,54 @@ import (
  */
 
 const (
-	appID  = "12345"
-	appKey = "12345"
-	host   = "idp.host.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
-	domain = "domain"
-	otp    = "123456"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
+	fPass   = ""
 )
 
-// TestOtpValidateRequest tests the validation of an otp
-func TestOtpValidateRequest(t *testing.T) {
-	defer gock.Off()
-	// Set up a test responder for the api.
-	gock.New("https://idp.host.com:443").Post("/secureauth1/api/v1/otp/validate").Reply(200).BodyString(generateOTP())
+var (
+	fOtp = "62150185"
+	fId  = ""
+)
 
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestOathSettings(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
 		t.Error(err)
 	}
-	otpRequest := new(Request)
-	otpResponse, err := otpRequest.ValidateOTP(client, user, domain, otp)
+	factorsRequest := new(factors.Request)
+	factorsResponse, err := factorsRequest.Get(client, fUser)
 	if err != nil {
 		t.Error(err)
 	}
-	if otpResponse.Status != "valid" {
-		t.Error("failed to validate otp")
-	}
-}
-
-// generateOTP generates a sample otp response for testing.
-func generateOTP() string {
-	response := &Response{
-		Status:       "valid",
-		Message:      "",
-		UserID:       user,
-		HTTPResponse: nil,
-	}
-
-	bytes, err := json.Marshal(response)
+	valid, err := factorsResponse.IsSignatureValid(client)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	return string(bytes)
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+
+	for _, factor := range factorsResponse.Factors {
+		if factor.FactorType == "oath" {
+			fId = factor.ID
+		}
+	}
+
+	oathRequest := new(Request)
+	oathResponse, err := oathRequest.GetOATHSettings(client, fUser, fPass, fOtp, fId)
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err = oathResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
 }

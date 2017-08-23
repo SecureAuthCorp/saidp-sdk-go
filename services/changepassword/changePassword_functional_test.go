@@ -1,7 +1,6 @@
-package dfp
+package changepassword
 
 import (
-	"fmt"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,42 +34,30 @@ import (
  */
 
 const (
-	appID           = ""
-	appKey          = ""
-	host            = "host.company.com"
-	realm           = "secureauth1"
-	port            = 443
-	user            = "user"
-	hostAddr        = "192.168.0.1"
-	fingerprintJSON = ``
-	accept          = ""
-	acceptEncode    = ""
-	acceptLang      = ""
-	acceptCharset   = ""
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
 )
 
-func TestDFPRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestChangePasswordRequest(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	dfpRequest := new(Request)
-	jsResponse, err := dfpRequest.GetDfpJs(client)
+	changeRequest := new(Request)
+	changeResponse, err := changeRequest.ChangePassword(client, fUser, "password", "password1")
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Response Struct for JavaScript Source:")
-	fmt.Println(jsResponse)
-	dfpValResponse, err := dfpRequest.ValidateDfp(client, user, hostAddr, "", fingerprintJSON, accept, acceptCharset, acceptEncode, acceptLang)
+
+	valid, err := changeResponse.IsSignatureValid(client)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Response Struct for DFP Validate:")
-	fmt.Println(dfpValResponse)
-	dfpConResponse, err := dfpRequest.ConfirmDfp(client, user, dfpValResponse.FingerprintID)
-	if err != nil {
-		fmt.Println(err)
+	if !valid {
+		t.Error("Response signature is invalid")
 	}
-	fmt.Println("Response Struct for DFP Confirm:")
-	fmt.Println(dfpConResponse)
 }
