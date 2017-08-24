@@ -1,7 +1,6 @@
-package ipeval
+package factors
 
 import (
-	"fmt"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,25 +34,29 @@ import (
  */
 
 const (
-	appID    = ""
-	appKey   = ""
-	host     = "host.company.com"
-	realm    = "secureauth1"
-	port     = 443
-	user     = "user"
-	hostAddr = "192.168.0.1"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
 )
 
-func TestIpEvalRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestFactors(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	evalRequest := new(Request)
-	evalResponse, err := evalRequest.EvaluateIP(client, user, hostAddr)
+	factors := new(Request)
+	factorResponse, err := factors.Get(client, fUser)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Response Struct for IpEval Response: ")
-	fmt.Println(evalResponse)
+	valid, err := factorResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
 }

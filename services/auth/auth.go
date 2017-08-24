@@ -2,8 +2,13 @@ package auth
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -46,11 +51,12 @@ var typeList = []string{"call", "sms", "email"}
 //	Response struct that will be populated after the post request.
 type Response struct {
 	RefID        string         `json:"reference_id,omitempty"`
-	Status       string         `json:"status,omitempty"`
-	Message      string         `json:"message,omitempty"`
+	Status       string         `json:"status"`
+	Message      string         `json:"message"`
 	UserID       string         `json:"user_id,omitempty"`
 	OTP          string         `json:"otp,omitempty"`
-	HTTPResponse *http.Response `json:",omitempty"`
+	RawJSON      string         `json:"-"`
+	HTTPResponse *http.Response `json:"-"`
 }
 
 // Request :
@@ -109,9 +115,15 @@ func (r *Request) Post(c *sa.Client) (*Response, error) {
 		return nil, err
 	}
 	authResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(authResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, authResponse); err != nil {
+		return nil, err
+	}
+	authResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	authResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return authResponse, nil
@@ -136,9 +148,15 @@ func (r *Request) Get(c *sa.Client, refID string) (*Response, error) {
 		return nil, err
 	}
 	authResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(authResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, authResponse); err != nil {
+		return nil, err
+	}
+	authResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	authResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return authResponse, nil
@@ -489,4 +507,33 @@ func buildEndpointPath(refID string) string {
 	buffer.WriteString("/")
 	buffer.WriteString(refID)
 	return buffer.String()
+}
+
+//IsSignatureValid :
+//	Helper function to validate the SecureAuth Response signature in X-SA-SIGNATURE
+// Parameters:
+//	[Required] r: response struct with HTTPResponse
+//	[Required] c: passing in the client with application id and key
+// Returns:
+//	bool: if true, computed signature matches X-SA-SIGNATURE. if false, computed signature does not match.
+//	error: If an error is encountered, bool will be false and the error must be handled.
+func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
+	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
+	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
+	var buffer bytes.Buffer
+	buffer.WriteString(saDate)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(r.RawJSON)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	computedSig := base64.StdEncoding.EncodeToString(sig.Sum(nil))
+	if computedSig != saSignature {
+		return false, nil
+	}
+	return true, nil
 }

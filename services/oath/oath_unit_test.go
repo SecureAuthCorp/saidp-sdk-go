@@ -1,9 +1,15 @@
 package oath
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/h2non/gock"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -37,34 +43,48 @@ import (
  */
 
 const (
-	appID  = "12345"
-	appKey = "12345"
-	host   = "idp.host.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
-	pass   = "password"
-	otp    = "12345"
-	id     = "12345"
+	uAppID  = "12345"
+	uAppKey = "12345"
+	uHost   = "idp.host.com"
+	uRealm  = "secureauth1"
+	uPort   = 443
+	uUser   = "user"
+	uPass   = "password"
+	uOtp    = "12345"
+	uId     = "12345"
 )
 
 // TestOathSettingRequest tests the retrieval of oath settings.
-func TestOathSettingRequest(t *testing.T) {
+func TestOathSettingRequest_Unit(t *testing.T) {
 	defer gock.Off()
-	// Set up a test responder for the api.
-	gock.New("https://idp.host.com:443").Post("/secureauth1/api/v1/oath").Reply(200).BodyString(generateOath())
-
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
 	if err != nil {
 		t.Error(err)
 	}
+
+	n := time.Now()
+	headers := map[string]string{
+		"X-SA-DATE":      n.String(),
+		"X-SA-SIGNATURE": makeResponseSignature(client, generateOath(), n.String()),
+	}
+
+	// Set up a test responder for the api.
+	gock.New("https://idp.host.com:443").Post("/secureauth1/api/v1/oath").Reply(200).BodyString(generateOath()).SetHeaders(headers)
+
 	oathRequest := new(Request)
-	oathResponse, err := oathRequest.GetOATHSettings(client, user, pass, otp, id)
+	oathResponse, err := oathRequest.GetOATHSettings(client, uUser, uPass, uOtp, uId)
 	if err != nil {
 		t.Error(err)
 	}
 	if oathResponse.Key != "12345" {
 		t.Error("Failed to retrieve oath seed.")
+	}
+	valid, err := oathResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
 	}
 }
 
@@ -79,11 +99,25 @@ func generateOath() string {
 		PinControl:    "foo",
 		FailedWipe:    "foo",
 		ScreenTimeout: "foo",
-		HTTPResponse:  nil,
 	}
 	bytes, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println(err)
 	}
 	return string(bytes)
+}
+
+func makeResponseSignature(c *sa.Client, r string, t string) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(t)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(r)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	return base64.StdEncoding.EncodeToString(sig.Sum(nil))
 }

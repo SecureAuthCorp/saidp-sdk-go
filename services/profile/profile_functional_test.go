@@ -1,7 +1,7 @@
-package accesshistory
+package profile
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,25 +35,74 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "host.company.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
-	userIP = "192.168.0.1"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
 )
 
-func TestAccessHistoryRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestProfileRequest(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	aHistoryRequest := new(Request)
-	accessResponse, err := aHistoryRequest.SetAccessHistory(client, user, userIP)
+	profileRequest := new(Request)
+	profileResponse, err := profileRequest.Get(client, fUser)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Response Struct from SecureAuth IdP API: ")
-	fmt.Printf("%#v\n", accessResponse)
+
+	if strings.Contains(profileResponse.Status, "not_found") {
+		postRequest := new(Request)
+		postRequest.UserID = fUser
+		postRequest.Password = "password"
+		props := new(PropertiesRequest)
+		props.FirstName = "Jim"
+		props.LastName = "Beam"
+		props.Phone1 = "5555555555"
+		props.Email1 = "someone@noreply.com"
+		props.AuxID1 = "TestAuxID1Data"
+		postRequest.Props = props
+		kbq := new(KnowledgeBase)
+		kbq1 := new(KnowledgeBaseData)
+		kbq1.Question = "What was the make of your first car."
+		kbq1.Answer = "car"
+		kbq.Kbq1 = kbq1
+		postRequest.KnowledgeBase = kbq
+		postResponse, err := postRequest.CreateUser(client)
+		if err != nil {
+			t.Error(err)
+		}
+		valid, err := postResponse.IsSignatureValid(client)
+		if err != nil {
+			t.Error(err)
+		}
+		if !valid {
+			t.Error("Response signature is invalid")
+		}
+	} else {
+		putRequest := new(Request)
+		putProps := new(PropertiesRequest)
+		putProps.AuxID2 = "UpdateAuxId2"
+		putKbq := new(KnowledgeBase)
+		putKbq1 := new(KnowledgeBaseData)
+		putKbq1.Question = "Who was your favorite teacher?"
+		putKbq1.Answer = "teacher"
+		putKbq.Kbq2 = putKbq1
+		putRequest.Props = putProps
+		putRequest.KnowledgeBase = putKbq
+		putResponse, err := putRequest.Put(client, fUser)
+		if err != nil {
+			t.Error(err)
+		}
+		valid, err := putResponse.IsSignatureValid(client)
+		if err != nil {
+			t.Error(err)
+		}
+		if !valid {
+			t.Error("Response signature is invalid")
+		}
+	}
 }

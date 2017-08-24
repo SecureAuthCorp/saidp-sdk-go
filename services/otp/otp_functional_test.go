@@ -1,7 +1,6 @@
-package numberprofile
+package otp
 
 import (
-	"fmt"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,29 +34,32 @@ import (
  */
 
 const (
-	appID       = ""
-	appKey      = ""
-	host        = "idp.host.com"
-	realm       = "secureauth1"
-	port        = 443
-	user        = "user"
-	phoneNumber = "15558675309"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
+	fDomain = ""
+	fOtp    = ""
 )
 
-func TestProfileNumber(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestOTPValidate(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	numberProfile := new(Request)
-	numberProfile.UserID = user
-	numberProfile.PhoneNumber = phoneNumber
-	numberResponse, err := numberProfile.Post(client)
+
+	validateRequest := new(Request)
+	validateResponse, err := validateRequest.ValidateOTP(client, fUser, fDomain, fOtp)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	fmt.Println("Number Profile Response (POST): ")
-	fmt.Println(numberResponse)
+	valid, err := validateResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
 }

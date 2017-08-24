@@ -1,7 +1,6 @@
-package behavebio
+package numberprofile
 
 import (
-	"fmt"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,38 +34,43 @@ import (
  */
 
 const (
-	appID         = ""
-	appKey        = ""
-	host          = "host.company.com"
-	realm         = "secureauth1"
-	port          = 443
-	behaveProfile = ``
-	userAgent     = ``
-	user          = "user"
+	fAppID       = ""
+	fAppKey      = ""
+	fHost        = ""
+	fRealm       = ""
+	fPort        = 443
+	fUser        = ""
+	fPhoneNumber = ""
 )
 
-func TestBehaveBioRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestProfileNumber(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	behaveRequest := new(Request)
-	getSrcResponse, err := behaveRequest.GetBehaveJs(client)
+	profileRequest := new(Request)
+	profileResponse, err := profileRequest.EvaluateNumberProfile(client, fUser, fPhoneNumber)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Javascript Source Response:")
-	fmt.Println(getSrcResponse)
-	postBehaveResp, err := behaveRequest.PostBehaveProfile(client, user, behaveProfile, "192.168.0.1", userAgent)
+	valid, err := profileResponse.IsSignatureValid(client)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Post Behavior Profile Response: ")
-	fmt.Println(postBehaveResp)
-	resetBehaveResp, err := behaveRequest.ResetBehaveProfile(client, user, "ALL", "ALL", "ALL")
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+
+	carrierResponse, err := profileRequest.UpdateCurrentCarrier(client, fUser, fPhoneNumber, profileResponse.Result.CurrentCarrier.CarrierCode, profileResponse.Result.CurrentCarrier.Carrier, profileResponse.Result.CurrentCarrier.CountryCode, profileResponse.Result.CurrentCarrier.NetworkType)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Reset Behavior Profile Response:")
-	fmt.Println(resetBehaveResp)
+	valid, err = carrierResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+
 }
