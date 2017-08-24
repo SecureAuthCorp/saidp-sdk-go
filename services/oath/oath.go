@@ -1,4 +1,4 @@
-package changepassword
+package oath
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 /*
 **********************************************************************
-*   @author jhickman@secureauth.com
+*   @author scox@secureauth.com
 *
 *  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
@@ -40,40 +40,46 @@ import (
 **********************************************************************
  */
 
-const (
-	endpoint = "/api/v1/users/"
-)
+const endpoint = "/api/v1/oath"
 
 // Response :
 //	Response struct that will be populated after the post request.
 type Response struct {
-	Status       string         `json:"status"`
-	Message      string         `json:"message"`
-	RawJSON      string         `json:"-"`
-	HTTPResponse *http.Response `json:"-"`
+	ServerTime    string         `json:"server_time,omitempty"`
+	Key           string         `json:"key,omitempty"`
+	Interval      string         `json:"interval,omitempty"`
+	Length        string         `json:"length,omitempty"`
+	Offset        string         `json:"offset,omitempty"`
+	PinControl    string         `json:"pin_control,omitempty"`
+	FailedWipe    string         `json:"failed_wipe,omitempty"`
+	ScreenTimeout string         `json:"screen_timeout,omitempty"`
+	RawJSON       string         `json:"-"`
+	HTTPResponse  *http.Response `json:"-"`
 }
 
 // Request :
 //	Request struct to build the required post parameters.
 // Fields:
-//	CurrentPwd: the user's current password.
-//	NewPwd: the password the user wishes to change their password to.
+//	[Required] UserId: the username that you want to submit access history for.
+//	[Required] Password: The password of the user you are retrieving oath settings for.
+//	[Required] Token: The otp of the user you are retrieving oath settings for.
+//	[Required] FactorID: The id of the device you are retrieving oath settings for.
 type Request struct {
-	CurrentPwd string `json:"currentPassword"`
-	NewPwd     string `json:"newPassword"`
+	UserID   string `json:"user_id,omitempty"`
+	Password string `json:"password,omitempty"`
+	Token    string `json:"token,omitempty"`
+	FactorID string `json:"factor_id,omitempty"`
 }
 
 // Post :
-//	Executes a post to the users endpoint.
+//	Executes a post to the oath endpoint.
 // Parameters:
 // 	[Required] r: should have all required fields of the struct populated before using.
 // 	[Required] c: passing in the client containing authorization and host information.
-//	[Required] userID: the username of the user to perform the post for.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) Post(c *sa.Client, userID string) (*Response, error) {
-	endpoint := buildEndpointPath(userID)
+func (r *Request) Post(c *sa.Client) (*Response, error) {
 	jsonRequest, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -86,50 +92,41 @@ func (r *Request) Post(c *sa.Client, userID string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	changeResponse := new(Response)
+	oathResponse := new(Response)
 	body, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(body, changeResponse); err != nil {
+	if err := json.Unmarshal(body, oathResponse); err != nil {
 		return nil, err
 	}
-	changeResponse.RawJSON = string(body)
+	oathResponse.RawJSON = string(body)
 	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	changeResponse.HTTPResponse = httpResponse
+	oathResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
-	return changeResponse, nil
+	return oathResponse, nil
 }
 
-// ChangePassword :
-//	Helper function for making Change Password posts to the users endpoint
+// GetOATHSettings :
+//	Helper function to retrieve the oath settings for a given user.
 // Parameters:
-// 	[Required] r: should have all required fields of the struct populated before using.
-// 	[Required] c: passing in the client containing authorization and host information.
-//	[Required] userID: the username of the user to perform the post for.
-//	[Required] currentPwd: users current password.
-//	[Required] newPwd: the password to change the users password to.
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] userID: the userID of the user whose oath settings you want.
+//	[Required] password: the password of the user whose oath settings you want.
+//	[Required] otp: the otp of the user whose oath settings you want.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) ChangePassword(c *sa.Client, userID string, currentPwd string, newPwd string) (*Response, error) {
-	r.CurrentPwd = currentPwd
-	r.NewPwd = newPwd
-	changeResponse, err := r.Post(c, userID)
+func (r *Request) GetOATHSettings(c *sa.Client, userID string, password string, otp string, id string) (*Response, error) {
+	r.UserID = userID
+	r.Password = password
+	r.Token = otp
+	r.FactorID = id
+	oathResponse, err := r.Post(c)
 	if err != nil {
 		return nil, err
 	}
-	return changeResponse, nil
-}
-
-// buildEndpointPath:
-//	non-exportable helper to build the endpoint api path with userid injected.
-func buildEndpointPath(userID string) string {
-	var buffer bytes.Buffer
-	buffer.WriteString(endpoint)
-	buffer.WriteString(userID)
-	buffer.WriteString("/changepwd")
-	return buffer.String()
+	return oathResponse, nil
 }
 
 //IsSignatureValid :

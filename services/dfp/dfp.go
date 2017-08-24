@@ -1,7 +1,13 @@
 package dfp
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -38,6 +44,8 @@ const (
 	jsEndpoint      = "/api/v1/dfp/js"
 	valEndpoint     = "/api/v1/dfp/validate"
 	confirmEndpoint = "/api/v1/dfp/confirm"
+	scoreEndpoint   = "/api/v1/dfp/score"
+	saveEndpoint    = "/api/v1/dfp/save"
 )
 
 // Response :
@@ -48,11 +56,12 @@ type Response struct {
 	Score           string         `json:"score,omitempty"`
 	MatchScore      string         `json:"match_score,omitempty"`
 	UpdateScore     string         `json:"update_score,omitempty"`
-	Status          string         `json:"status,omitempty"`
-	Message         string         `json:"message,omitempty"`
+	Status          string         `json:"status"`
+	Message         string         `json:"message"`
 	UserID          string         `json:"user_id,omitempty"`
 	Source          string         `json:"src,omitempty"`
-	HTTPResponse    *http.Response `json:"-,omitempty"`
+	RawJSON         string         `json:"-"`
+	HTTPResponse    *http.Response `json:"-"`
 }
 
 // Request :
@@ -63,30 +72,10 @@ type Response struct {
 //	FingerprintID: used to validate known fingerprint or confirm a fingerprint.
 //	Fingerprint: fingerprint value struct required to validate a fingerprint.
 type Request struct {
-	UserID        string      `json:"user_id,omitempty"`
-	HostAddress   string      `json:"host_address,omitempty"`
-	FingerprintID string      `json:"fingerprint_id,omitempty"`
-	Fingerprint   Fingerprint `json:"fingerprint,omitempty"`
-}
-
-// Fingerprint :
-//	Details for the fingerprint makeup.
-// Fields:
-//	All fields should be populated from the Json string returned by the imported javascript.
-type Fingerprint struct {
-	Fonts          string `json:"fonts,omitempty"`
-	Plugins        string `json:"plugins,omitempty"`
-	Timezone       string `json:"timezone,omitempty"`
-	Video          string `json:"video,omitempty"`
-	LocalStorage   string `json:"local_storage,omitempty"`
-	SessionStorage string `json:"session_storage,omitempty"`
-	IeUserData     string `json:"ie_user_data,omitempty"`
-	CookieEnabled  string `json:"cookie_enabled,omitempty"`
-	UserAgent      string `json:"user_agent,omitempty"`
-	Accept         string `json:"accept,omitempty"`
-	AcceptCharset  string `json:"accept_charset,omitempty"`
-	AcceptEncoding string `json:"accept_encoding,omitempty"`
-	AcceptLang     string `json:"accept_language,omitempty"`
+	UserID        string                 `json:"user_id,omitempty"`
+	HostAddress   string                 `json:"host_address,omitempty"`
+	FingerprintID string                 `json:"fingerprint_id,omitempty"`
+	Fingerprint   map[string]interface{} `json:"fingerprint,omitempty"`
 }
 
 // Get :
@@ -108,9 +97,15 @@ func (r *Request) Get(c *sa.Client, endpoint string) (*Response, error) {
 		return nil, err
 	}
 	dfpResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(dfpResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, dfpResponse); err != nil {
+		return nil, err
+	}
+	dfpResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	dfpResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return dfpResponse, nil
@@ -139,9 +134,15 @@ func (r *Request) Post(c *sa.Client, endpoint string) (*Response, error) {
 		return nil, err
 	}
 	dfpResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(dfpResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, dfpResponse); err != nil {
+		return nil, err
+	}
+	dfpResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	dfpResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return dfpResponse, nil
@@ -170,22 +171,16 @@ func (r *Request) GetDfpJs(c *sa.Client) (*Response, error) {
 //	[Required] hostAddress: the ip address of the user's device.
 //	fingerprintId: if it is a known fingerprint, provide the fingerprint id to validate against.
 //	[Required] fingerprint: the json string returned by the javascript dfp script.
-//	[Required] accept: accept header of the users request.
-//	[Required] acceptCharset: the accept_charset header of the users request.
-//	[Required] acceptEncoding: the accept_encoding header of the users request.
-//	[Required] acceptLanguage: the accept_language header of the users request.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, fingerprintId string, fingerprint string, accept string, acceptCharset string, acceptEncoding string, acceptLanguage string) (*Response, error) {
-	if err := json.Unmarshal([]byte(fingerprint), &r); err != nil {
+func (r *Request) ValidateDfp(c *sa.Client, userID string, hostAddress string, fingerprintID string, fingerprint string) (*Response, error) {
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(fingerprint), &m); err != nil {
 		return nil, err
 	}
-	r.Fingerprint.Accept = accept
-	r.Fingerprint.AcceptCharset = acceptCharset
-	r.Fingerprint.AcceptEncoding = acceptEncoding
-	r.Fingerprint.AcceptLang = acceptLanguage
-	r.FingerprintID = fingerprintId
+	r.Fingerprint = m
+	r.FingerprintID = fingerprintID
 	r.UserID = userID
 	r.HostAddress = hostAddress
 	validateResponse, err := r.Post(c, valEndpoint)
@@ -212,4 +207,87 @@ func (r *Request) ConfirmDfp(c *sa.Client, userID string, fingerprintID string) 
 		return nil, err
 	}
 	return confirmResponse, nil
+}
+
+// ScoreDfp :
+//	Helper function for posting to the dfp validate endpoint.
+// Parameters:
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] userID: the username of the user you wish to validate a dfp for.
+//	[Required] hostAddress: the ip address of the user's device.
+//	fingerprintId: if it is a known fingerprint, provide the fingerprint id to validate against.
+//	[Required] fingerprint: the json string returned by the javascript dfp script.
+// Returns:
+//	Response: Struct marshaled from the Json response from the API endpoints.
+//	Error: If an error is encountered, response will be nil and the error must be handled.
+func (r *Request) ScoreDfp(c *sa.Client, userID string, hostAddress string, fingerprintID string, fingerprint string) (*Response, error) {
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(fingerprint), &m); err != nil {
+		return nil, err
+	}
+	r.Fingerprint = m
+	r.FingerprintID = fingerprintID
+	r.UserID = userID
+	r.HostAddress = hostAddress
+	validateResponse, err := r.Post(c, scoreEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return validateResponse, nil
+}
+
+// SaveDfp :
+//	Helper function for posting to the dfp validate endpoint.
+// Parameters:
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] userID: the username of the user you wish to validate a dfp for.
+//	[Required] hostAddress: the ip address of the user's device.
+//	fingerprintId: if it is a known fingerprint, provide the fingerprint id to validate against.
+//	[Required] fingerprint: the json string returned by the javascript dfp script.
+// Returns:
+//	Response: Struct marshaled from the Json response from the API endpoints.
+//	Error: If an error is encountered, response will be nil and the error must be handled.
+func (r *Request) SaveDfp(c *sa.Client, userID string, hostAddress string, fingerprintID string, fingerprint string) (*Response, error) {
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(fingerprint), &m); err != nil {
+		return nil, err
+	}
+	r.Fingerprint = m
+	r.FingerprintID = fingerprintID
+	r.UserID = userID
+	r.HostAddress = hostAddress
+	validateResponse, err := r.Post(c, saveEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return validateResponse, nil
+}
+
+//IsSignatureValid :
+//	Helper function to validate the SecureAuth Response signature in X-SA-SIGNATURE
+// Parameters:
+//	[Required] r: response struct with HTTPResponse
+//	[Required] c: passing in the client with application id and key
+// Returns:
+//	bool: if true, computed signature matches X-SA-SIGNATURE. if false, computed signature does not match.
+//	error: If an error is encountered, bool will be false and the error must be handled.
+func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
+	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
+	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
+	var buffer bytes.Buffer
+	buffer.WriteString(saDate)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(r.RawJSON)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	computedSig := base64.StdEncoding.EncodeToString(sig.Sum(nil))
+	if computedSig != saSignature {
+		return false, nil
+	}
+	return true, nil
 }

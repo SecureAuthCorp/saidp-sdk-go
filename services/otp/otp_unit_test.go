@@ -1,15 +1,23 @@
-package behavebio
+package otp
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/h2non/gock"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
 /*
 **********************************************************************
-*   @author jhickman@secureauth.com
+*   @author scox@secureauth.com
 *
 *  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
@@ -35,38 +43,75 @@ import (
  */
 
 const (
-	appID         = ""
-	appKey        = ""
-	host          = "host.company.com"
-	realm         = "secureauth1"
-	port          = 443
-	behaveProfile = ``
-	userAgent     = ``
-	user          = "user"
+	uAppID  = "12345"
+	uAppKey = "12345"
+	uHost   = "idp.host.com"
+	uRealm  = "secureauth1"
+	uPort   = 443
+	uUser   = "user"
+	uDomain = "domain"
+	uOtp    = "123456"
 )
 
-func TestBehaveBioRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+// TestOtpValidateRequest tests the validation of an otp
+func TestOtpValidateRequest_Unit(t *testing.T) {
+	defer gock.Off()
+	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	n := time.Now()
+	headers := map[string]string{
+		"X-SA-DATE":      n.String(),
+		"X-SA-SIGNATURE": makeResponseSignature(client, generateOTP(), n.String()),
+	}
+	// Set up a test responder for the api.
+	gock.New("https://idp.host.com:443").Post("/secureauth1/api/v1/otp/validate").Reply(200).BodyString(generateOTP()).SetHeaders(headers)
+
+	otpRequest := new(Request)
+	otpResponse, err := otpRequest.ValidateOTP(client, uUser, uDomain, uOtp)
+	if err != nil {
+		t.Error(err)
+	}
+	if otpResponse.Status != "valid" {
+		t.Error("failed to validate otp")
+	}
+	valid, err := otpResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+}
+
+// generateOTP generates a sample otp response for testing.
+func generateOTP() string {
+	response := &Response{
+		Status:  "valid",
+		Message: "",
+		UserID:  uUser,
+	}
+
+	bytes, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println(err)
 	}
-	behaveRequest := new(Request)
-	getSrcResponse, err := behaveRequest.GetBehaveJs(client)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Javascript Source Response:")
-	fmt.Println(getSrcResponse)
-	postBehaveResp, err := behaveRequest.PostBehaveProfile(client, user, behaveProfile, "192.168.0.1", userAgent)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Post Behavior Profile Response: ")
-	fmt.Println(postBehaveResp)
-	resetBehaveResp, err := behaveRequest.ResetBehaveProfile(client, user, "ALL", "ALL", "ALL")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Reset Behavior Profile Response:")
-	fmt.Println(resetBehaveResp)
+	return string(bytes)
+}
+
+func makeResponseSignature(c *sa.Client, r string, t string) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(t)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(r)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	return base64.StdEncoding.EncodeToString(sig.Sum(nil))
 }

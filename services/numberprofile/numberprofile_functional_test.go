@@ -1,8 +1,6 @@
-package profile
+package numberprofile
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -36,69 +34,43 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "host.company.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
+	fAppID       = ""
+	fAppKey      = ""
+	fHost        = ""
+	fRealm       = ""
+	fPort        = 443
+	fUser        = ""
+	fPhoneNumber = ""
 )
 
-func TestProfileRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestProfileNumber(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
 	profileRequest := new(Request)
-	profileResponse, err := profileRequest.Get(client, user)
+	profileResponse, err := profileRequest.EvaluateNumberProfile(client, fUser, fPhoneNumber)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	fmt.Println("Get Profile Response: ")
-	fmt.Println(profileResponse)
-	if strings.Contains(profileResponse.Status, "not_found") {
-		postRequest := new(Request)
-		postRequest.UserID = user
-		postRequest.Password = "password"
-		props := new(PropertiesRequest)
-		props.FirstName = "Jim"
-		props.LastName = "Beam"
-		props.Phone1 = "5555555555"
-		props.Email1 = "someone@noreply.com"
-		props.AuxID1 = "TestAuxID1Data"
-		postRequest.Props = props
-		kbq := new(KnowledgeBase)
-		kbq1 := new(KnowledgeBaseData)
-		kbq1.Question = "What was the make of your first car."
-		kbq1.Answer = "car"
-		kbq.Kbq1 = kbq1
-		postRequest.KnowledgeBase = kbq
-		postResponse, err := postRequest.CreateUser(client)
-		if err != nil {
-			fmt.Println(err)
-			t.FailNow()
-		}
-		fmt.Println("Post Profile Response: ")
-		fmt.Println(postResponse)
-	} else {
-		putRequest := new(Request)
-		putProps := new(PropertiesRequest)
-		putProps.AuxID2 = "UpdateAuxId2"
-		putKbq := new(KnowledgeBase)
-		putKbq1 := new(KnowledgeBaseData)
-		putKbq1.Question = "Who was your favorite teacher?"
-		putKbq1.Answer = "teacher"
-		putKbq.Kbq2 = putKbq1
-		putRequest.Props = putProps
-		putRequest.KnowledgeBase = putKbq
-		putResponse, err := putRequest.Put(client, user)
-		if err != nil {
-			fmt.Println(err)
-			t.FailNow()
-		}
-		fmt.Println("Put Profile Response: ")
-		fmt.Println(putResponse)
+	valid, err := profileResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
 	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+
+	carrierResponse, err := profileRequest.UpdateCurrentCarrier(client, fUser, fPhoneNumber, profileResponse.Result.CurrentCarrier.CarrierCode, profileResponse.Result.CurrentCarrier.Carrier, profileResponse.Result.CurrentCarrier.CountryCode, profileResponse.Result.CurrentCarrier.NetworkType)
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err = carrierResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+
 }

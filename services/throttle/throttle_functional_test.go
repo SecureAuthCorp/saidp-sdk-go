@@ -1,7 +1,7 @@
 package throttle
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,42 +35,67 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "idp.host.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
 )
 
-func TestThrottleGet(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+func TestThrottle(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	throttleRequest := new(Request)
-	getThrottleResp, err := throttleRequest.Get(client, user)
+
+	resetTest, err := resetThrottle(client)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	fmt.Println("Throttle Count Response (GET): ")
-	fmt.Println(getThrottleResp)
+	if !resetTest {
+		t.Error("Reset Throttle test failed")
+	}
+
+	getTest, err := getThrottle(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !getTest {
+		t.Error("Get Throttle test failed")
+	}
 }
 
-func TestThrottlePut(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
+func resetThrottle(client *sa.Client) (bool, error) {
 	throttleRequest := new(Request)
-	putThrottleResp, err := throttleRequest.Put(client, user)
+	throttleResponse, err := throttleRequest.Put(client, fUser)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		return false, err
 	}
-	fmt.Println("Throttle Reset Response (PUT): ")
-	fmt.Println(putThrottleResp)
+
+	valid, err := throttleResponse.IsSignatureValid(client)
+	if err != nil {
+		return false, err
+	}
+	if !valid {
+		return false, errors.New("Response signature is invalid")
+	}
+	return true, nil
+}
+
+func getThrottle(client *sa.Client) (bool, error) {
+	throttleRequest := new(Request)
+	throttleResponse, err := throttleRequest.Get(client, fUser)
+	if err != nil {
+		return false, err
+	}
+
+	valid, err := throttleResponse.IsSignatureValid(client)
+	if err != nil {
+		return false, err
+	}
+	if !valid {
+		return false, errors.New("Response signature is invalid")
+	}
+	return true, nil
 }

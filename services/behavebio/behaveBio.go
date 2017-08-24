@@ -1,7 +1,13 @@
 package behavebio
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -44,9 +50,10 @@ const (
 type Response struct {
 	Source          string             `json:"src,omitempty"`
 	BehaviorResults BehaviorBioResults `json:"BehaviorBioResults,omitempty"`
-	Status          string             `json:"status,omitempty"`
-	Message         string             `json:"message,omitempty"`
-	HTTPResponse    *http.Response     `json:"-,omitempty"`
+	Status          string             `json:"status"`
+	Message         string             `json:"message"`
+	RawJSON         string             `json:"-"`
+	HTTPResponse    *http.Response     `json:"-"`
 }
 
 // Request :
@@ -106,9 +113,15 @@ func (r *Request) Get(c *sa.Client, endpoint string) (*Response, error) {
 		return nil, err
 	}
 	behaveResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(behaveResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, behaveResponse); err != nil {
+		return nil, err
+	}
+	behaveResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	behaveResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return behaveResponse, nil
@@ -137,9 +150,15 @@ func (r *Request) Post(c *sa.Client, endpoint string) (*Response, error) {
 		return nil, err
 	}
 	behaveResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(behaveResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, behaveResponse); err != nil {
+		return nil, err
+	}
+	behaveResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	behaveResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return behaveResponse, nil
@@ -168,9 +187,15 @@ func (r *Request) Put(c *sa.Client, endpoint string) (*Response, error) {
 		return nil, err
 	}
 	behaveResponse := new(Response)
-	if err := json.NewDecoder(httpResponse.Body).Decode(behaveResponse); err != nil {
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
 		return nil, err
 	}
+	if err := json.Unmarshal(body, behaveResponse); err != nil {
+		return nil, err
+	}
+	behaveResponse.RawJSON = string(body)
+	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	behaveResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
 	return behaveResponse, nil
@@ -236,4 +261,33 @@ func (r *Request) ResetBehaveProfile(c *sa.Client, userID string, fieldName stri
 		return nil, err
 	}
 	return behaveResponse, nil
+}
+
+//IsSignatureValid :
+//	Helper function to validate the SecureAuth Response signature in X-SA-SIGNATURE
+// Parameters:
+//	[Required] r: response struct with HTTPResponse
+//	[Required] c: passing in the client with application id and key
+// Returns:
+//	bool: if true, computed signature matches X-SA-SIGNATURE. if false, computed signature does not match.
+//	error: If an error is encountered, bool will be false and the error must be handled.
+func (r *Response) IsSignatureValid(c *sa.Client) (bool, error) {
+	saDate := r.HTTPResponse.Header.Get("X-SA-DATE")
+	saSignature := r.HTTPResponse.Header.Get("X-SA-SIGNATURE")
+	var buffer bytes.Buffer
+	buffer.WriteString(saDate)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(r.RawJSON)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	computedSig := base64.StdEncoding.EncodeToString(sig.Sum(nil))
+	if computedSig != saSignature {
+		return false, nil
+	}
+	return true, nil
 }

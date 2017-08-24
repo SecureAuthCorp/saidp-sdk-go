@@ -1,7 +1,6 @@
 package changepassword
 
 import (
-	"fmt"
 	"testing"
 
 	sa "github.com/secureauthcorp/saidp-sdk-go"
@@ -35,26 +34,30 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "host.company.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
 )
 
 func TestChangePasswordRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
 	changeRequest := new(Request)
-	changeResponse, err := changeRequest.ChangePassword(client, user, "password", "password1")
+	changeResponse, err := changeRequest.ChangePassword(client, fUser, "password", "password1")
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	fmt.Println("Change Password Response: ")
-	fmt.Println(changeResponse)
+
+	valid, err := changeResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
 }

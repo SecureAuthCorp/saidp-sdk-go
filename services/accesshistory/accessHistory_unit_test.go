@@ -1,9 +1,17 @@
-package groups
+package accesshistory
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/h2non/gock"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -35,67 +43,72 @@ import (
  */
 
 const (
-	appID       = ""
-	appKey      = ""
-	host        = "host.company.com"
-	realm       = "secureauth1"
-	port        = 443
-	user1       = "user1"
-	user2       = "user2"
-	user3       = "user3"
-	user4       = "user4"
-	group1      = "group1"
-	group2      = "group2"
-	group3      = "group3"
-	group4      = "group4"
-	spacedGroup = "group 5"
+	uAppID  = "12345"
+	uAppKey = "12345"
+	uHost   = "idp.host.com"
+	uRealm  = "secureauth1"
+	uPort   = 443
+	uUser   = "user"
+	uUserIP = "192.168.0.1"
 )
 
-func TestGroupRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	// Test Single User to Single Group
-	susgRequest := new(Request)
-	susgResponse, err := susgRequest.AddUserToGroup(client, user1, spacedGroup)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	fmt.Println("Add Single User to Single Group Response: ")
-	fmt.Println(susgResponse)
+// TestAccessHistory_Unit tests the submitting of an AccessHistory record. This is a unit test.
+func TestAccessHistory_Unit(t *testing.T) {
+	defer gock.Off()
 
-	// Test Single User to Multiple Groups
-	sumgRequest := new(Request)
-	sumgGroups := []string{group2, group3, group4}
-	sumgResponse, err := sumgRequest.AddUserToGroups(client, user1, sumgGroups)
+	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+		t.Error(err)
 	}
-	fmt.Println("Add Single User to Multiple Groups Response: ")
-	fmt.Println(sumgResponse)
 
-	// Test Single Group to Single User
-	sgsuRequest := new(Request)
-	sgsuResponse, err := sgsuRequest.AddGroupToUser(client, group4, user1)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
+	n := time.Now()
+	headers := map[string]string{
+		"X-SA-DATE":      n.String(),
+		"X-SA-SIGNATURE": makeResponseSignature(client, generateResponse(), n.String()),
 	}
-	fmt.Println("Add Single Group to Single User Response: ")
-	fmt.Println(sgsuResponse)
+	// Set up a test responder for the api.
+	gock.New("https://idp.host.com:443").
+		Post("/secureauth1/api/v1/accesshistory").
+		Reply(200).
+		BodyString(generateResponse()).
+		SetHeaders(headers)
+	ahRequest := new(Request)
+	ahResponse, err := ahRequest.SetAccessHistory(client, uUser, uUserIP)
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err := ahResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+}
 
-	// Test Single Group to Multiple Users.
-	sgmuRequest := new(Request)
-	sgmuUsers := []string{user2, user3, user4}
-	sgmuResponse, err := sgmuRequest.AddGroupToUsers(client, group2, sgmuUsers)
+func generateResponse() string {
+	response := &Response{
+		Status:  "valid",
+		Message: "Access History request has been processed.",
+	}
+	bytes, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println(err)
-		t.FailNow()
 	}
-	fmt.Println("Add Single Group to Multiple Users Response: ")
-	fmt.Println(sgmuResponse)
+	return string(bytes)
+}
+
+func makeResponseSignature(c *sa.Client, response string, timeStamp string) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(timeStamp)
+	buffer.WriteString("\n")
+	buffer.WriteString(c.AppID)
+	buffer.WriteString("\n")
+	buffer.WriteString(response)
+	raw := buffer.String()
+	byteKey, _ := hex.DecodeString(c.AppKey)
+	byteData := []byte(raw)
+	sig := hmac.New(sha256.New, byteKey)
+	sig.Write([]byte(byteData))
+	return base64.StdEncoding.EncodeToString(sig.Sum(nil))
 }

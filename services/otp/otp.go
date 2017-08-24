@@ -1,4 +1,4 @@
-package changepassword
+package otp
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 /*
 **********************************************************************
-*   @author jhickman@secureauth.com
+*   @author scox@secureauth.com
 *
 *  Copyright (c) 2017, SecureAuth
 *  All rights reserved.
@@ -40,15 +40,14 @@ import (
 **********************************************************************
  */
 
-const (
-	endpoint = "/api/v1/users/"
-)
+const endpoint = "/api/v1/otp/validate"
 
 // Response :
 //	Response struct that will be populated after the post request.
 type Response struct {
 	Status       string         `json:"status"`
 	Message      string         `json:"message"`
+	UserID       string         `json:"user_id,omitempty"`
 	RawJSON      string         `json:"-"`
 	HTTPResponse *http.Response `json:"-"`
 }
@@ -56,24 +55,24 @@ type Response struct {
 // Request :
 //	Request struct to build the required post parameters.
 // Fields:
-//	CurrentPwd: the user's current password.
-//	NewPwd: the password the user wishes to change their password to.
+//	[Required] UserId: The username that you want to validate an otp for.
+//	[Required] Domain: The domain of the user you want to validate an otp for.
+//	[Required] OTP: The OTP you want to validate.
 type Request struct {
-	CurrentPwd string `json:"currentPassword"`
-	NewPwd     string `json:"newPassword"`
+	UserID string `json:"user_id"`
+	Domain string `json:"domain,omitempty"`
+	OTP    string `json:"otp"`
 }
 
 // Post :
-//	Executes a post to the users endpoint.
+//	Executes a post to the otp endpoint.
 // Parameters:
 // 	[Required] r: should have all required fields of the struct populated before using.
 // 	[Required] c: passing in the client containing authorization and host information.
-//	[Required] userID: the username of the user to perform the post for.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) Post(c *sa.Client, userID string) (*Response, error) {
-	endpoint := buildEndpointPath(userID)
+func (r *Request) Post(c *sa.Client) (*Response, error) {
 	jsonRequest, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -86,50 +85,40 @@ func (r *Request) Post(c *sa.Client, userID string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	changeResponse := new(Response)
+	otpResponse := new(Response)
 	body, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(body, changeResponse); err != nil {
+	if err := json.Unmarshal(body, otpResponse); err != nil {
 		return nil, err
 	}
-	changeResponse.RawJSON = string(body)
+	otpResponse.RawJSON = string(body)
 	httpResponse.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	changeResponse.HTTPResponse = httpResponse
+	otpResponse.HTTPResponse = httpResponse
 	httpResponse.Body.Close()
-	return changeResponse, nil
+	return otpResponse, nil
 }
 
-// ChangePassword :
-//	Helper function for making Change Password posts to the users endpoint
+// ValidateOTP :
+//	Helper function for making Validate otp auth endpoint posts.
 // Parameters:
-// 	[Required] r: should have all required fields of the struct populated before using.
-// 	[Required] c: passing in the client containing authorization and host information.
-//	[Required] userID: the username of the user to perform the post for.
-//	[Required] currentPwd: users current password.
-//	[Required] newPwd: the password to change the users password to.
+//	[Required] c: passing in the client containing authorization and host information.
+//	[Required] userID: the userID of the user you wish to validate.
+//	[Required] domain: the domain of the user you wish to validate. (optional)
+//	[Required] otp: the otp to be validated.
 // Returns:
 //	Response: Struct marshaled from the Json response from the API endpoints.
 //	Error: If an error is encountered, response will be nil and the error must be handled.
-func (r *Request) ChangePassword(c *sa.Client, userID string, currentPwd string, newPwd string) (*Response, error) {
-	r.CurrentPwd = currentPwd
-	r.NewPwd = newPwd
-	changeResponse, err := r.Post(c, userID)
+func (r *Request) ValidateOTP(c *sa.Client, userID string, domain string, otp string) (*Response, error) {
+	r.UserID = userID
+	r.Domain = domain
+	r.OTP = otp
+	otpResponse, err := r.Post(c)
 	if err != nil {
 		return nil, err
 	}
-	return changeResponse, nil
-}
-
-// buildEndpointPath:
-//	non-exportable helper to build the endpoint api path with userid injected.
-func buildEndpointPath(userID string) string {
-	var buffer bytes.Buffer
-	buffer.WriteString(endpoint)
-	buffer.WriteString(userID)
-	buffer.WriteString("/changepwd")
-	return buffer.String()
+	return otpResponse, nil
 }
 
 //IsSignatureValid :

@@ -1,9 +1,9 @@
-package adaptauth
+package oath
 
 import (
-	"fmt"
 	"testing"
 
+	factors "github.com/jhickmansa/saidp-sdk-go/services/factors"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -35,26 +35,54 @@ import (
  */
 
 const (
-	appID  = ""
-	appKey = ""
-	host   = "host.company.com"
-	realm  = "secureauth1"
-	port   = 443
-	user   = "user"
-	userIP = "192.168.0.1"
+	fAppID  = ""
+	fAppKey = ""
+	fHost   = ""
+	fRealm  = ""
+	fPort   = 443
+	fUser   = ""
+	fPass   = ""
 )
 
-func TestAdaptAuthRequest(t *testing.T) {
-	client, err := sa.NewClient(appID, appKey, host, port, realm, true, false)
-	if err != nil {
-		fmt.Println(err)
-	}
-	adaptRequest := new(Request)
+var (
+	fOtp = "62150185"
+	fId  = ""
+)
 
-	adaptResponse, err := adaptRequest.EvaluateAdaptiveAuth(client, user, userIP)
+func TestOathSettings(t *testing.T) {
+	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
-	fmt.Println("Response Struct from SecureAuth IdP API: ")
-	fmt.Printf("%#v\n", adaptResponse)
+	factorsRequest := new(factors.Request)
+	factorsResponse, err := factorsRequest.Get(client, fUser)
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err := factorsResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
+
+	for _, factor := range factorsResponse.Factors {
+		if factor.FactorType == "oath" {
+			fId = factor.ID
+		}
+	}
+
+	oathRequest := new(Request)
+	oathResponse, err := oathRequest.GetOATHSettings(client, fUser, fPass, fOtp, fId)
+	if err != nil {
+		t.Error(err)
+	}
+	valid, err = oathResponse.IsSignatureValid(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !valid {
+		t.Error("Response signature is invalid")
+	}
 }
