@@ -51,7 +51,7 @@ const (
 	uUser   = "user"
 	uPass   = "password"
 	uOtp    = "12345"
-	uId     = "12345"
+	uID     = "12345"
 )
 
 // TestOathSettingRequest tests the retrieval of oath settings.
@@ -72,7 +72,7 @@ func TestOathSettingRequest_Unit(t *testing.T) {
 	gock.New("https://idp.host.com:443").Post("/secureauth1/api/v1/oath").Reply(200).BodyString(generateOath()).SetHeaders(headers)
 
 	oathRequest := new(Request)
-	oathResponse, err := oathRequest.GetOATHSettings(client, uUser, uPass, uOtp, uId)
+	oathResponse, err := oathRequest.GetOATHSettings(client, uUser, uPass, uOtp, uID)
 	if err != nil {
 		t.Error(err)
 	}

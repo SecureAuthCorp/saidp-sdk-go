@@ -1,4 +1,4 @@
-package resetpassword
+package otpvalidatethrottle
 
 import (
 	"bytes"
@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -50,48 +52,106 @@ const (
 	uUser   = "user"
 )
 
-func ResetPasswordUnit(t *testing.T) {
-	defer gock.Off()
-
+func TestThrottle_Unit(t *testing.T) {
 	client, err := sa.NewClient(uAppID, uAppKey, uHost, uPort, uRealm, true, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	responseMock := &Response{
-		Status:  "success",
-		Message: "Password was reset",
-	}
-
-	bytes, err := json.Marshal(responseMock)
+	resetTest, err := reset(client)
 	if err != nil {
 		t.Error(err)
 	}
+	if !resetTest {
+		t.Error("Reset Throttle test failed")
+	}
 
+	getTest, err := get(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !getTest {
+		t.Error("Get Throttle test failed")
+	}
+
+}
+
+func reset(client *sa.Client) (bool, error) {
+	defer gock.Off()
+
+	responseMock := &Response{
+		Status:  "found",
+		Message: "",
+		Count:   0,
+	}
+	bytes, err := json.Marshal(responseMock)
+	if err != nil {
+		fmt.Println(err)
+	}
+	responseMockJSON := string(bytes)
 	n := time.Now()
 	headers := map[string]string{
 		"X-SA-DATE":      n.String(),
-		"X-SA-SIGNATURE": makeResponseSignature(client, string(bytes), n.String()),
+		"X-SA-SIGNATURE": makeResponseSignature(client, responseMockJSON, n.String()),
 	}
-	// Set up a test responder for the api.
+
 	gock.New("https://idp.host.com:443").
-		Post("/secureauth1/api/v1/users/" + uUser).
-		Reply(200).
-		BodyString(string(bytes)).
+		Put("/secureauth1/api/v1/users/" + uUser + "/throttle").
+		Reply(200).BodyString(responseMockJSON).
 		SetHeaders(headers)
 
-	resetRequest := new(Request)
-	resetResponse, err := resetRequest.ResetPassword(client, uUser, "Password1")
+	throttleRequest := new(Request)
+	throttleResponse, err := throttleRequest.Put(client, uUser)
 	if err != nil {
-		t.Error(err)
+		return false, err
 	}
-	valid, err := resetResponse.IsSignatureValid(client)
+	valid, err := throttleResponse.IsSignatureValid(client)
 	if err != nil {
-		t.Error(err)
+		return false, err
 	}
 	if !valid {
-		t.Error("Response signature is invalid")
+		return false, errors.New("Response signature is invalid")
 	}
+	return true, nil
+}
+
+func get(client *sa.Client) (bool, error) {
+	defer gock.Off()
+
+	responseMock := &Response{
+		Status:  "found",
+		Message: "",
+		Count:   0,
+	}
+	bytes, err := json.Marshal(responseMock)
+	if err != nil {
+		fmt.Println(err)
+	}
+	responseMockJSON := string(bytes)
+	n := time.Now()
+	headers := map[string]string{
+		"X-SA-DATE":      n.String(),
+		"X-SA-SIGNATURE": makeResponseSignature(client, responseMockJSON, n.String()),
+	}
+
+	gock.New("https://idp.host.com:443").
+		Get("/secureauth1/api/v1/users/" + uUser + "/throttle").
+		Reply(200).BodyString(responseMockJSON).
+		SetHeaders(headers)
+
+	throttleRequest := new(Request)
+	throttleResponse, err := throttleRequest.Get(client, uUser)
+	if err != nil {
+		return false, err
+	}
+	valid, err := throttleResponse.IsSignatureValid(client)
+	if err != nil {
+		return false, err
+	}
+	if !valid {
+		return false, errors.New("Response signature is invalid")
+	}
+	return true, nil
 }
 
 func makeResponseSignature(c *sa.Client, response string, timeStamp string) string {

@@ -1,9 +1,9 @@
-package oath
+package otpvalidatethrottle
 
 import (
+	"errors"
 	"testing"
 
-	factors "github.com/jhickmansa/saidp-sdk-go/services/factors"
 	sa "github.com/secureauthcorp/saidp-sdk-go"
 )
 
@@ -41,48 +41,61 @@ const (
 	fRealm  = ""
 	fPort   = 443
 	fUser   = ""
-	fPass   = ""
 )
 
-var (
-	fOtp = "62150185"
-	fID  = ""
-)
-
-func TestOathSettings(t *testing.T) {
+func TestThrottle(t *testing.T) {
 	client, err := sa.NewClient(fAppID, fAppKey, fHost, fPort, fRealm, true, false)
 	if err != nil {
 		t.Error(err)
 	}
-	factorsRequest := new(factors.Request)
-	factorsResponse, err := factorsRequest.Get(client, fUser)
+
+	resetTest, err := resetThrottle(client)
 	if err != nil {
 		t.Error(err)
 	}
-	valid, err := factorsResponse.IsSignatureValid(client)
-	if err != nil {
-		t.Error(err)
-	}
-	if !valid {
-		t.Error("Response signature is invalid")
+	if !resetTest {
+		t.Error("Reset Throttle test failed")
 	}
 
-	for _, factor := range factorsResponse.Factors {
-		if factor.FactorType == "oath" {
-			fID = factor.ID
-		}
+	getTest, err := getThrottle(client)
+	if err != nil {
+		t.Error(err)
+	}
+	if !getTest {
+		t.Error("Get Throttle test failed")
+	}
+}
+
+func resetThrottle(client *sa.Client) (bool, error) {
+	throttleRequest := new(Request)
+	throttleResponse, err := throttleRequest.Put(client, fUser)
+	if err != nil {
+		return false, err
 	}
 
-	oathRequest := new(Request)
-	oathResponse, err := oathRequest.GetOATHSettings(client, fUser, fPass, fOtp, fID)
+	valid, err := throttleResponse.IsSignatureValid(client)
 	if err != nil {
-		t.Error(err)
-	}
-	valid, err = oathResponse.IsSignatureValid(client)
-	if err != nil {
-		t.Error(err)
+		return false, err
 	}
 	if !valid {
-		t.Error("Response signature is invalid")
+		return false, errors.New("Response signature is invalid")
 	}
+	return true, nil
+}
+
+func getThrottle(client *sa.Client) (bool, error) {
+	throttleRequest := new(Request)
+	throttleResponse, err := throttleRequest.Get(client, fUser)
+	if err != nil {
+		return false, err
+	}
+
+	valid, err := throttleResponse.IsSignatureValid(client)
+	if err != nil {
+		return false, err
+	}
+	if !valid {
+		return false, errors.New("Response signature is invalid")
+	}
+	return true, nil
 }
